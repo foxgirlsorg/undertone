@@ -131,9 +131,14 @@ const shareOf = (value: number, max: number) => (max > 0 ? Math.max(2, (value / 
 /* ---------- recent listens ---------- */
 
 /** Playing now (refreshed every 30 s) and the latest listens, compact. Full paging lives on the listens page. */
-export function RecentListensPreview({ name }: { name: string }) {
+/**
+ * Recent listens. On desktop, `fillHeight` is the sidebar's height and the card shows as many rows as
+ * fit in it (at least 10, at most the 25 fetched); on phones it shows 10.
+ */
+export function RecentListensPreview({ name, fillHeight }: { name: string; fillHeight?: number }) {
   const base = `/user/${encodeURIComponent(name)}`;
-  const page = useLB(["user-listens", name, 0, 0], (api) => fetchListensPage(api, name));
+  // Enough rows to fill a tall sidebar on desktop; the card shows only as many as fit.
+  const page = useLB(["user-listens-overview", name], (api) => fetchListensPage(api, name, undefined, undefined, 50));
   const nowQuery = useLB(["playing-now", name], (api) => api.getPlayingNowForUser(name), {
     refreshInterval: 30_000,
   });
@@ -142,17 +147,44 @@ export function RecentListensPreview({ name }: { name: string }) {
     () => (nowQuery.data ? ({ ...nowQuery.data, playing_now: true } as Listen) : undefined),
     [nowQuery.data]
   );
-  const listens = React.useMemo(() => (page.data?.listens ?? []).slice(0, TOP_COUNT), [page.data]);
+  const panelRef = React.useRef<HTMLDivElement>(null);
+  const listRef = React.useRef<HTMLDivElement>(null);
+  const [count, setCount] = React.useState(TOP_COUNT);
+  const all = page.data?.listens;
+
+  // Rows that fit: (sidebar height - the card's own header and padding) / one row's height.
+  React.useLayoutEffect(() => {
+    const panel = panelRef.current;
+    const list = listRef.current;
+    const row = list?.firstElementChild as HTMLElement | null | undefined;
+    if (!fillHeight || !panel || !list || !row) {
+      setCount(TOP_COUNT);
+      return;
+    }
+    // Header above the list, plus the card's bottom padding (the card itself may be stretched taller).
+    const chrome = list.getBoundingClientRect().top - panel.getBoundingClientRect().top + 22;
+    const pitch = row.getBoundingClientRect().height;
+    if (pitch <= 0) return;
+    const fit = Math.floor((fillHeight - chrome) / pitch) - (nowQuery.data ? 1 : 0);
+    setCount(Math.max(TOP_COUNT, Math.min(all?.length ?? TOP_COUNT, fit)));
+  }, [fillHeight, all, nowQuery.data]);
+
+  const listens = React.useMemo(() => (all ?? []).slice(0, count), [all, count]);
   const fb = useListFeedback(nowListen ? [nowListen, ...listens] : listens);
 
   return (
-    <Panel title="Recent listens" aside={<Link href={`${base}/listens`} className="text-ink hover:text-data">View all</Link>}>
+    <div ref={panelRef} className="lg:h-full">
+    <Panel
+      title="Recent listens"
+      className="lg:h-full"
+      aside={<Link href={`${base}/listens`} className="text-ink hover:text-data">View all</Link>}
+    >
       {page.isLoading && !page.data ? (
         <SkeletonRows rows={6} pitch={56} />
       ) : page.error && !page.data ? (
         <ErrorNote error={page.error} onRetry={() => page.mutate()} />
       ) : nowListen || listens.length ? (
-        <div className="flex flex-col">
+        <div ref={listRef} className="flex flex-col">
           {nowListen ? (
             <ListenCard
               key="playing-now"
@@ -177,6 +209,7 @@ export function RecentListensPreview({ name }: { name: string }) {
         <Empty>No listens yet.</Empty>
       )}
     </Panel>
+    </div>
   );
 }
 

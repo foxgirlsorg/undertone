@@ -92,7 +92,7 @@ function ImportArea({ user }: { user: AuthUser }) {
     <div>
       <SettingsSection
         title="Latest import"
-        description="The newest listen Undertone has imported for each service. Imports stop when they reach this point, so they do not duplicate listens."
+        description="Imports stop here, so nothing is duplicated."
       >
         <SettingsPanel className="flex flex-col gap-3">
           <LatestImport user={user} service="lastfm" label="Last.fm" />
@@ -104,8 +104,7 @@ function ImportArea({ user }: { user: AuthUser }) {
         title="Upload a history file"
         description={
           <>
-            One import per service at a time. Duplicates are skipped by time, so you can import overlapping ranges. Files
-            are deleted once the import finishes. For live connections use{" "}
+            One import per service at a time; duplicates are skipped. For live connections use{" "}
             <Link href="/settings/music-services" className="text-ink-2 underline underline-offset-2">
               Music services
             </Link>
@@ -118,7 +117,7 @@ function ImportArea({ user }: { user: AuthUser }) {
 
       <SettingsSection
         title="Your imports"
-        description="Running imports refresh every 10 seconds. You can close this page while they run."
+        description="You can close this page while they run."
       >
         <ImportList user={user} imports={imports} />
       </SettingsSection>

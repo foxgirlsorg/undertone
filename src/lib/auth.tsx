@@ -5,6 +5,9 @@ import { mutate } from "swr";
 import APIService from "./api";
 import { LB_API_URL } from "./config";
 import type { SessionAccount } from "./server/lb-session";
+import { setSpotifyCredentials } from "./spotify";
+import { setNavidromeCredentials } from "./navidrome";
+import { setYoutubeApiKey } from "@/components/settings/player-prefs";
 
 /*
   Two ways to sign in:
@@ -34,6 +37,8 @@ type AuthContextValue = {
   signInWithPassword: (username: string, password: string) => Promise<AuthUser>;
   /** Reads the account again from listenbrainz.org (after saving a setting, for example). */
   refreshAccount: () => Promise<void>;
+  /** "Show my picture to others" (password sign-in only). Throws with a readable message on failure. */
+  setAvatarShared: (shared: boolean) => Promise<void>;
   signOut: () => void;
 };
 
@@ -92,6 +97,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  // Music-service credentials come from the ListenBrainz session and live only in memory.
+  React.useEffect(() => {
+    setSpotifyCredentials(account?.spotify ?? null);
+    setYoutubeApiKey(account?.youtubeApiKey ?? null);
+    setNavidromeCredentials(account?.navidrome ?? null);
+  }, [account?.spotify, account?.youtubeApiKey, account?.navidrome]);
+
   const signIn = React.useCallback(async (token: string) => {
     const u = await validate(token);
     window.localStorage.setItem(STORAGE_KEY, u.token);
@@ -120,6 +132,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAccount(acc);
   }, []);
 
+  const setAvatarShared = React.useCallback(async (shared: boolean) => {
+    const res = await fetch("/api/lb-session/avatar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ shared }),
+      cache: "no-store",
+    });
+    const body = (await res.json().catch(() => ({}))) as SessionAccount & { error?: string };
+    if (!res.ok) throw new Error(body.error ?? "Couldn't change that. Try again in a moment.");
+    setAccount(body);
+  }, []);
+
   const signOut = React.useCallback(() => {
     window.localStorage.removeItem(STORAGE_KEY);
     if (account) void fetch("/api/lb-session/logout", { method: "POST" }).catch(() => {});
@@ -130,8 +154,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [account]);
 
   const value = React.useMemo(
-    () => ({ api, user, account, signIn, signInWithPassword, refreshAccount, signOut }),
-    [user, account, signIn, signInWithPassword, refreshAccount, signOut]
+    () => ({ api, user, account, signIn, signInWithPassword, refreshAccount, setAvatarShared, signOut }),
+    [user, account, signIn, signInWithPassword, refreshAccount, setAvatarShared, signOut]
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
@@ -151,6 +175,11 @@ export function useApi() {
 export function requireUser(user: AuthUser | null | undefined): AuthUser {
   if (!user) throw new Error("Sign in with your ListenBrainz token to do this.");
   return user;
+}
+
+/** A profile picture shared through Undertone (see src/app/api/avatar). Empty (204) when there is none. */
+export function sharedAvatarUrl(name: string, size = 128) {
+  return `/api/avatar/${encodeURIComponent(name)}?s=${size}`;
 }
 
 /** Gravatar URL for the signed-in user's own email (only with a password session). */

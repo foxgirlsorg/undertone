@@ -8,7 +8,7 @@ export default function DeleteListensSettingsPage() {
       <div>
         <SettingsSection
           title="Bulk deletion"
-          description="Deleting listens is handled on listenbrainz.org, which needs your website session."
+          description="Done on listenbrainz.org."
         >
           <SettingsPanel className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-[14px] text-ink-2">Deletions are scheduled and usually run shortly after the hour.</p>

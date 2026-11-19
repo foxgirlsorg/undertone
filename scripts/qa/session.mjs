@@ -43,12 +43,21 @@ globalThis.fetch = async (url, init = {}) => {
       return res(302, { location: "/", cookies: ["session=meb2; HttpOnly; Path=/", "remember_token=mebrt; Path=/"] });
     }
     case "GET listenbrainz.org/login/musicbrainz/": return res(302, { location: "https://metabrainz.org/oauth2/authorize?client_id=lb&state=S", cookies: ["session=lbtmp; HttpOnly; Path=/; SameSite=Lax"] });
-    case "GET metabrainz.org/oauth2/authorize": assert.match(cookie, /session=meb2/); return res(302, { location: "https://listenbrainz.org/login/musicbrainz/post/?code=K&state=S" });
+    case "GET metabrainz.org/oauth2/authorize":
+      assert.match(cookie, /session=meb2/);
+      if (u.searchParams.get("client_id") === "mb") return res(302, { location: "https://musicbrainz.org/metabrainz/oauth2/callback?code=M&state=S" });
+      return res(302, { location: "https://listenbrainz.org/login/musicbrainz/post/?code=K&state=S" });
+    case "GET musicbrainz.org/login": return res(302, { location: "https://metabrainz.org/oauth2/authorize?client_id=mb&state=S", cookies: ["musicbrainz_server_session=mbtmp; HttpOnly; Path=/"] });
+    case "GET musicbrainz.org/metabrainz/oauth2/callback": assert.equal(cookie, "musicbrainz_server_session=mbtmp"); return res(302, { location: "/", cookies: ["musicbrainz_server_session=mbauth; HttpOnly; Path=/", "remember_login=mbrl; Path=/"] });
+    case "GET musicbrainz.org/user/new-editor":
+      if (!/musicbrainz_server_session=mbauth/.test(cookie)) return res(200, { body: '<table class="profileinfo"><tr><th>Homepage:</th><td><div class="deleted">This content is hidden to prevent spam.</div></td></tr></table>' });
+      return res(200, { body: '<table class="profileinfo"><tr><th>Homepage:</th><td><a href="https://example.org/me?a=1&amp;b=2">example.org</a></td></tr></table>' });
+    case "POST listenbrainz.org/settings/music-services/spotify/refresh/": assert.match(cookie, /session=lbauth/); return res(200, { json: { access_token: "SPOT2" } });
     case "GET listenbrainz.org/login/musicbrainz/post/": assert.equal(cookie, "session=lbtmp"); return res(302, { location: "/", cookies: ["session=lbauth; HttpOnly; Path=/", "remember_token=lbrt; Expires=Wed, 01 Jan 2031 00:00:00 GMT; Path=/"] });
     case "GET listenbrainz.org/": return res(200, { body: "home" });
     case "GET listenbrainz.org/settings/":
       if (!/session=lbauth/.test(cookie)) return res(302, { location: "/login/?next=/settings/" });
-      return res(200, { body: html("global-react-props", { current_user: { name: "qa", auth_token: "T" }, user_preferences: { youtubeEnabled: false }, flair: "shine", musicbrainz: { access_token: "MBT" } }) });
+      return res(200, { body: html("global-react-props", { current_user: { name: "qa", auth_token: "T" }, user_preferences: { youtubeEnabled: false }, flair: "shine", musicbrainz: { access_token: "MBT" }, spotify: { access_token: "SPOT1", permission: ["streaming", "user-read-email"] }, youtube: { api_key: "YTKEY" } }) });
     case "GET listenbrainz.org/login/": return res(200, { body: "login page" });
     case "POST listenbrainz.org/settings/select_timezone/": return res(200, { json: { user_timezone: "Europe/Berlin", pg_timezones: [] } });
     case "POST listenbrainz.org/settings/troi/": return res(200, { json: { troi_prefs: { export_to_spotify: true } } });
@@ -63,16 +72,25 @@ await assert.rejects(s.signInWithPassword("qa", "wrong"), (e) => e.code === "cre
 // right password
 const jar = await s.signInWithPassword("qa", "right");
 const packed = s.packSession(jar);
-const lbOnly = JSON.parse(Buffer.from(packed, "base64url").toString());
-assert.deepEqual(lbOnly, { session: "lbauth", remember_token: "lbrt" }, "only listenbrainz.org cookies handed back");
+const handed = JSON.parse(Buffer.from(packed, "base64url").toString());
+assert.deepEqual(handed, { lb: { session: "lbauth", remember_token: "lbrt" }, mb: { musicbrainz_server_session: "mbauth", remember_login: "mbrl" } },
+  "only listenbrainz.org and musicbrainz.org cookies handed back, never the metabrainz.org ones");
+assert(!calls.includes("GET listenbrainz.org/ []") && !calls.some((c) => c.startsWith("GET listenbrainz.org/ ")), "loaded the listenbrainz.org homepage after sign-in");
 const acc = await s.readAccount(s.unpackSession(packed));
 assert.equal(acc.name, "qa"); assert.equal(acc.token, "T"); assert.equal(acc.timezone, "Europe/Berlin");
 assert.equal(acc.troi.export_to_spotify, true); assert.equal(acc.flair, "shine"); assert.equal(acc.email, "QA@Example.com");
 assert.equal(acc.gravatarHash, (await import("node:crypto")).createHash("sha256").update("qa@example.com").digest("hex"));
+assert.deepEqual(acc.spotify, { accessToken: "SPOT1", permission: ["streaming", "user-read-email"] }); assert.equal(acc.youtubeApiKey, "YTKEY");
+// Spotify token renewed through listenbrainz.org
+assert.equal(await s.refreshSpotify(s.unpackSession(packed)), "SPOT2");
+// a homepage musicbrainz.org hides from anonymous visitors, read as the signed-in viewer
+assert.equal(await s.readMusicBrainzHomepage(s.unpackSession(packed), "new-editor"), "https://example.org/me?a=1&b=2");
+const lbOnlyCookie = Buffer.from(JSON.stringify({ session: "lbauth" })).toString("base64url");
+assert.equal(await s.readMusicBrainzHomepage(s.unpackSession(lbOnlyCookie), "new-editor"), null, "an old cookie without musicbrainz.org cookies reads nothing");
 // expired session
 await assert.rejects(s.readAccount(s.unpackSession(Buffer.from(JSON.stringify({ session: "old" })).toString("base64url"))), (e) => e.code === "expired");
 // tampered cookie
 assert.equal(s.unpackSession("not base64 json"), null);
 // logout clears
-const j2 = s.unpackSession(packed); await s.signOutSession(j2); assert.equal(j2.size, 0);
+const j2 = s.unpackSession(packed); await s.signOutSession(j2); assert(![...j2.values()].some((c) => c.domain === "listenbrainz.org"), "listenbrainz.org cookies left after logout");
 console.log("all session tests passed;", calls.length, "mock requests");

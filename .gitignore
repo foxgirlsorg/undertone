@@ -45,3 +45,6 @@ next-env.d.ts
 
 # downloaded HeroUI docs (fetch again if needed)
 /docs/heroui/
+
+# shared profile-picture codes (src/lib/server/avatar-store.ts)
+/.data/

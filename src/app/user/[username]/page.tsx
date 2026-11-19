@@ -29,6 +29,7 @@ function OverviewView() {
   const name = useUserName();
   const [raw, setRange] = useStatsRange("week");
   const range: UserStatsAPIRange = OVERVIEW_RANGES.some((r) => r.key === raw) ? raw : "week";
+  const [setSidebar, sidebarHeight] = useDesktopHeight();
 
   return (
     <div className="flex flex-col gap-[14px] pb-6">
@@ -36,9 +37,9 @@ function OverviewView() {
 
       <div className="grid gap-[14px] lg:grid-cols-6">
         <div className="min-w-0 lg:col-span-4">
-          <RecentListensPreview name={name} />
+          <RecentListensPreview name={name} fillHeight={sidebarHeight} />
         </div>
-        <div className="flex min-w-0 flex-col gap-[14px] max-lg:order-last lg:col-span-2">
+        <div ref={setSidebar} className="flex min-w-0 flex-col gap-[14px] self-start max-lg:order-last lg:col-span-2">
           <AboutPanel name={name} />
           <PinnedPanel name={name} />
           <FollowingFollowersPanel name={name} />
@@ -52,4 +53,24 @@ function OverviewView() {
       </div>
     </div>
   );
+}
+
+/** The sidebar's height at desktop widths (>= 1024px), so recent listens can fill the same height. */
+function useDesktopHeight() {
+  const [el, setEl] = React.useState<HTMLDivElement | null>(null);
+  const [height, setHeight] = React.useState<number>();
+  React.useEffect(() => {
+    if (!el) return;
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const update = () => setHeight(mq.matches ? el.getBoundingClientRect().height : undefined);
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    mq.addEventListener("change", update);
+    update();
+    return () => {
+      ro.disconnect();
+      mq.removeEventListener("change", update);
+    };
+  }, [el]);
+  return [setEl, height] as const;
 }

@@ -9,3 +9,6 @@ export async function POST(req: NextRequest) {
   if (jar) await signOutSession(jar);
   return withoutSession(NextResponse.json({ ok: true }, { headers: noStore }));
 }
+
+/** Reads from listenbrainz.org, which can be slow. */
+export const maxDuration = 60;

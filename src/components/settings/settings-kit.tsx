@@ -11,7 +11,8 @@
 
 import * as React from "react";
 import { Button } from "@heroui/react";
-import { cx, Loading, SignInPrompt } from "@/components/ui";
+import NextLink from "next/link";
+import { cx, Empty, Loading, SignInPrompt } from "@/components/ui";
 import { useAuth, type AuthUser } from "@/lib/auth";
 
 export function SettingsSection({
@@ -129,6 +130,34 @@ export function SettingsGate({
   if (user === undefined) return <Loading />;
   if (user === null) return <SignInPrompt what={what} />;
   return <>{children(user)}</>;
+}
+
+/**
+ * For settings ListenBrainz shares only with a real (password) sign-in: your player, timezone,
+ * recommendation and flair preferences. A token can't read them, so editing them blind would
+ * overwrite what is saved on ListenBrainz; with a token this explains that instead.
+ */
+export function PasswordGate({ what, children }: { what: string; children: React.ReactNode }) {
+  const { user, account } = useAuth();
+  if (user === undefined || (user && account === undefined)) return <Loading />;
+  if (user === null) return <SignInPrompt what={what} />;
+  if (!account) return <PasswordOnlyNotice what={what} />;
+  return <>{children}</>;
+}
+
+export function PasswordOnlyNotice({ what }: { what: string }) {
+  return (
+    <Empty
+      action={
+        <NextLink href="/login" className="rounded-full bg-white px-4 py-1.5 text-[13px] font-medium text-black">
+          Sign in with your password
+        </NextLink>
+      }
+    >
+      You&apos;re signed in with a token. ListenBrainz only shares your settings and your linked music services with a
+      full sign-in, so {what} and the player need you to sign in with your MetaBrainz username and password.
+    </Empty>
+  );
 }
 
 /** Flips to true after the first client render. Use to gate components that read localStorage. */

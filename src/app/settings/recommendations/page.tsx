@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Link, Page, SwitchRow } from "@/components/ui";
-import { SaveBar, SettingsGate, SettingsPanel, SettingsSection, useSave } from "@/components/settings/settings-kit";
+import { SaveBar, PasswordGate, SettingsGate, SettingsPanel, SettingsSection, useSave } from "@/components/settings/settings-kit";
 import { useApi, useAuth } from "@/lib/auth";
 
 export default function RecommendationsSettingsPage() {
@@ -11,9 +11,11 @@ export default function RecommendationsSettingsPage() {
       title="Recommendations"
       subtitle="Playlist generation (Daily Jams, Weekly Jams and Weekly Exploration) on ListenBrainz."
     >
-      <SettingsGate what="change your playlist preferences">
-        {(user) => <RecommendationsForm token={user.token} />}
-      </SettingsGate>
+      <PasswordGate what="your playlist preferences">
+        <SettingsGate what="change your playlist preferences">
+          {(user) => <RecommendationsForm token={user.token} />}
+        </SettingsGate>
+      </PasswordGate>
     </Page>
   );
 }
@@ -36,7 +38,7 @@ function RecommendationsForm({ token }: { token: string }) {
     <div>
       <SettingsSection
         title="Auto-export to Spotify"
-        description="When on, ListenBrainz exports your generated playlists to Spotify automatically. You can still export any playlist by hand."
+        description="Sends your generated playlists to Spotify automatically."
         summary={
           value === null
             ? "With a token, Undertone can't read this setting. Choose one and save, or sign in with your password to see it."

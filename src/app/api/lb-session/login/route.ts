@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { readAccount, signInWithPassword } from "@/lib/server/lb-session";
-import { errorResponse, noStore, sameOrigin, withSession } from "../shared";
+import { withAvatar, errorResponse, noStore, sameOrigin, withSession } from "../shared";
 
 /*
   POST { username, password }. The password is used for one request to metabrainz.org and then
@@ -17,8 +17,11 @@ export async function POST(req: NextRequest) {
   try {
     const jar = await signInWithPassword(username, password);
     const account = await readAccount(jar);
-    return withSession(NextResponse.json(account, { headers: noStore }), jar, req);
+    return withSession(NextResponse.json(await withAvatar(account), { headers: noStore }), jar, req);
   } catch (err) {
     return errorResponse(err);
   }
 }
+
+/** A password sign-in can take over half a minute: listenbrainz.org is slow to finish its own sign-in. */
+export const maxDuration = 120;

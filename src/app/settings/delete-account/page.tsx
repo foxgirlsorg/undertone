@@ -8,7 +8,7 @@ export default function DeleteAccountSettingsPage() {
       <div>
         <SettingsSection
           title="Delete your ListenBrainz account"
-          description="Closing the account removes it from ListenBrainz. Undertone cannot do this, because it needs your website session on listenbrainz.org."
+          description="Done on listenbrainz.org."
         >
           <SettingsPanel className="flex flex-col gap-3">
             <p className="text-[14px] leading-5 text-ink-2">

@@ -16,6 +16,8 @@ export type MBProfile = {
   avatarUrl?: string;
   /** http(s) URL of the homepage. */
   homepage?: string;
+  /** musicbrainz.org hides this editor's homepage from anonymous visitors (new editors, against spam). */
+  homepageHidden?: boolean;
   /** Plain text, e.g. "Barcelona, Catalunya, Spain". */
   location?: string;
   /** Raw text from MusicBrainz, e.g. "The dawn of the project" or a date. */

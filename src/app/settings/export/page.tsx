@@ -59,7 +59,7 @@ function ExportArea({ user }: { user: AuthUser }) {
     <div>
       <SettingsSection
         title="Start an export"
-        description="One archive with every listen you have submitted and your loves and hates. You can limit it to a date range. Only one export can run at a time."
+        description="Every listen, love and hate in one archive. One export at a time."
         summary={running ? "An export is running. Wait for it before starting another." : undefined}
       >
         <StartExport user={user} disabled={running} onStarted={() => exports.mutate()} />
@@ -67,7 +67,7 @@ function ExportArea({ user }: { user: AuthUser }) {
 
       <SettingsSection
         title="Your exports"
-        description="Ready archives expire on the date shown. Download them before then, or delete them here."
+        description="Download before the date shown."
       >
         <ExportList user={user} exports={exports} />
       </SettingsSection>

@@ -7,13 +7,15 @@
 
 import * as React from "react";
 import { usePathname } from "next/navigation";
+import useSWR from "swr";
 import { format } from "date-fns";
 import { Button, toast } from "@heroui/react";
-import { gravatarUrl, useAuth } from "@/lib/auth";
+import { gravatarUrl, sharedAvatarUrl, useAuth } from "@/lib/auth";
 import { useLB } from "@/lib/use-lb";
 import { useMBProfile } from "@/lib/mb-profile";
 import { fmtInt, toDate } from "@/lib/format";
 import { NavTabs, UserAvatar, cx } from "@/components/ui";
+import { FlairName } from "@/components/ui/flair-name";
 import { FollowButton } from "@/components/user/follow-button";
 import { fetchListensPage, sameUser, similarityPercent } from "@/components/user/data";
 import { useProfileTotals } from "@/components/user/profile-totals";
@@ -30,7 +32,18 @@ export function ProfileShell({ children }: { children: React.ReactNode }) {
   const totals = useProfileTotals(name);
   const mb = useMBProfile(name);
   const mbProfile = mb.data ?? undefined;
-  const homepage = mbProfile?.homepage;
+  // MusicBrainz no longer hosts pictures: your own Gravatar on your profile, or one its owner shared through Undertone.
+  const avatarSrc = isMe && account?.gravatarHash ? gravatarUrl(account.gravatarHash, 128) : sharedAvatarUrl(name, 128);
+  // musicbrainz.org shows new editors' homepages only to logged-in people; with a password sign-in, ask as you.
+  const hiddenHomepage = useSWR(
+    mbProfile?.homepageHidden && account ? ["mb-homepage", name] : null,
+    async () => {
+      const res = await fetch(`/api/lb-session/mb-homepage/${encodeURIComponent(name)}`, { cache: "no-store" });
+      return ((await res.json().catch(() => ({}))) as { homepage?: string | null }).homepage ?? null;
+    },
+    { revalidateOnFocus: false }
+  );
+  const homepage = mbProfile?.homepage ?? hiddenHomepage.data ?? undefined;
   const location = mbProfile?.location;
   const memberSince = mbProfile?.memberSince;
   const homeHost = (() => {
@@ -45,6 +58,8 @@ export function ProfileShell({ children }: { children: React.ReactNode }) {
   const oldest = first.data?.oldestListenTs ?? 0;
 
   const followers = useLB(["followers", name], (api) => api.getFollowersOfUser(name));
+  // Donors' name flairs, the same list ListenBrainz uses.
+  const flairs = useLB(["all-flairs"], (api) => api.getUserFlairs());
   const compat = useLB(signedInOther ? ["compat", signedInOther, name] : null, async (api) => {
     if (!signedInOther) return null;
     return api.getSimilarityBetweenUsers(signedInOther, name);
@@ -98,9 +113,11 @@ export function ProfileShell({ children }: { children: React.ReactNode }) {
     <div className="flex flex-col gap-[14px]">
       <header className="flex flex-col gap-4 pb-1 pt-6 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 items-center gap-4">
-          <UserAvatar name={name} size={64} src={mbProfile?.avatarUrl ?? (isMe ? gravatarUrl(account?.gravatarHash, 128) : undefined)} />
+          <UserAvatar name={name} size={64} src={avatarSrc} />
           <div className="min-w-0">
-            <h1 className="truncate text-[24px] font-semibold leading-8 tracking-[-0.01em]">{name}</h1>
+            <h1 className="truncate text-[24px] font-semibold leading-8 tracking-[-0.01em]">
+              <FlairName name={name} flair={flairs.data?.[name] as string | undefined} />
+            </h1>
             {oldest ? (
               <p className="text-[14px] text-ink-3">
                 Listening since {format(toDate(oldest), "d MMMM yyyy")}
@@ -121,7 +138,7 @@ export function ProfileShell({ children }: { children: React.ReactNode }) {
                 ) : null}
                 {(location || homeHost) && memberSince ? <span aria-hidden>·</span> : null}
                 {memberSince ? (
-                  <span className="min-w-0 break-words">MusicBrainz member since {/^\d/.test(memberSince) ? memberSince : memberSince.charAt(0).toLowerCase() + memberSince.slice(1)}</span>
+                  <span className="min-w-0 break-words">MusicBrainz member since {memberSinceText(memberSince)}</span>
                 ) : null}
               </p>
             ) : null}
@@ -160,4 +177,11 @@ export function ProfileShell({ children }: { children: React.ReactNode }) {
       {children}
     </div>
   );
+}
+
+/** "2026-03-07 23:43 UTC" -> "7 March 2026", the same way "Listening since" is written. */
+function memberSinceText(raw: string) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(raw);
+  if (!m) return /^\d/.test(raw) ? raw : raw.charAt(0).toLowerCase() + raw.slice(1);
+  return format(new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])), "d MMMM yyyy");
 }

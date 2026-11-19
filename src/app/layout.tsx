@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import "@/styles/flairs.css";
 import { Providers } from "@/components/shell/providers";
 import { TopBar } from "@/components/shell/top-bar";
 import { PlayerBar } from "@/components/player/player-bar";
@@ -21,7 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen bg-black text-white antialiased">
         <Providers>
           <TopBar />
-          <main className="mx-auto w-full max-w-[1152px] px-4 pb-32 sm:px-6 xl:px-0">{children}</main>
+          <main className="mx-auto min-h-svh w-full max-w-[1152px] px-4 pb-32 sm:px-6 xl:px-0">{children}</main>
           <SiteFooter />
           <PlayerBar />
         </Providers>

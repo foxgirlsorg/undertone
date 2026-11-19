@@ -191,6 +191,10 @@ function parseProfile(html: string, name: string): MBProfile {
         break;
       }
       case "homepage": {
+        if (/class="deleted"/.test(cell)) {
+          profile.homepageHidden = true;
+          break;
+        }
         const href = /<a\b[^>]*href="([^"]*)"/i.exec(cell)?.[1];
         const homepage = httpUrl(decodeEntities(href ?? plainText(cell)).trim());
         if (homepage) profile.homepage = homepage;

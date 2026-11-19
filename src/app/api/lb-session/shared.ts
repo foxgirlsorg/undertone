@@ -1,6 +1,7 @@
 import "server-only";
 import { NextResponse, type NextRequest } from "next/server";
-import { packSession, SESSION_COOKIE, SessionError, unpackSession, type Jar } from "@/lib/server/lb-session";
+import { packSession, SESSION_COOKIE, SessionError, unpackSession, type Jar, type SessionAccount } from "@/lib/server/lb-session";
+import { avatarOptedOut, rememberAvatar } from "@/lib/server/avatar-store";
 
 /** listenbrainz.org keeps you signed in for a year; the cookie on this site matches that. */
 const MAX_AGE = 365 * 24 * 60 * 60;
@@ -43,4 +44,18 @@ export function errorResponse(err: unknown) {
 export function sameOrigin(req: NextRequest) {
   const origin = req.headers.get("origin");
   return !origin || origin === req.nextUrl.origin;
+}
+
+/**
+ * Keeps the signed-in person's Gravatar hash for their public profile picture (the one thing the
+ * server stores; see src/lib/server/avatar-store.ts) and says whether it is shown.
+ */
+export async function withAvatar(account: SessionAccount): Promise<SessionAccount> {
+  try {
+    await rememberAvatar(account.name, account.gravatarHash);
+    return { ...account, avatarShared: !!account.gravatarHash && !(await avatarOptedOut(account.name)) };
+  } catch {
+    // A full disk or read-only host must not stop anyone signing in.
+    return { ...account, avatarShared: false };
+  }
 }

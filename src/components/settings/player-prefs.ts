@@ -6,6 +6,7 @@
   sends the whole object. Nothing is stored in the browser or on Undertone's server: see below.
 */
 import { isSpotifyConnected } from "@/lib/spotify";
+import { readPrefCookie, writePrefCookie } from "@/lib/pref-cookie";
 
 export type BrainzSourceId = BrainzPlayerSettings["dataSourcesPriority"][number];
 
@@ -21,7 +22,7 @@ export const ALL_BRAINZ_SOURCE_IDS: BrainzSourceId[] = [
 ];
 
 /** The sources Undertone can play. */
-export type PlaybackSourceId = "spotify" | "youtube" | "internet-archive";
+export type PlaybackSourceId = "spotify" | "youtube" | "internet-archive" | "navidrome";
 
 export const DEFAULT_BRAINZ_SETTINGS: BrainzPlayerSettings = {
   youtubeEnabled: true,
@@ -56,50 +57,50 @@ export const SOURCE_INFO: Record<BrainzSourceId, SourceInfo> = {
   spotify: {
     id: "spotify",
     label: "Spotify",
-    note: "Plays through Spotify in this browser. Needs a Spotify Premium account and a connection (see Spotify below).",
+    note: "Your linked account. Needs Premium.",
     playable: true,
     enabledKey: "spotifyEnabled",
   },
   youtube: {
     id: "youtube",
     label: "YouTube",
-    note: "Plays YouTube videos. Matches are often loose.",
+    note: "Matches can be loose.",
     playable: true,
     enabledKey: "youtubeEnabled",
   },
   internetArchive: {
     id: "internetArchive",
     label: "Internet Archive",
-    note: "A free, public-domain audio archive. Needs no account.",
+    note: "Free, no account needed.",
     playable: true,
     enabledKey: "internetArchiveEnabled",
   },
   soundcloud: {
     id: "soundcloud",
     label: "SoundCloud",
-    note: "Used by ListenBrainz's own player. Undertone can't play this yet.",
+    note: "Not playable in Undertone yet.",
     playable: false,
     enabledKey: "soundcloudEnabled",
   },
   appleMusic: {
     id: "appleMusic",
     label: "Apple Music",
-    note: "Used by ListenBrainz's own player. Undertone can't play this yet.",
+    note: "Not playable in Undertone yet.",
     playable: false,
     enabledKey: "appleMusicEnabled",
   },
   funkwhale: {
     id: "funkwhale",
     label: "Funkwhale",
-    note: "Used by ListenBrainz's own player. Undertone can't play this yet.",
+    note: "Not playable in Undertone yet.",
     playable: false,
     enabledKey: "funkwhaleEnabled",
   },
   navidrome: {
     id: "navidrome",
     label: "Navidrome",
-    note: "Used by ListenBrainz's own player. Undertone can't play this yet.",
-    playable: false,
+    note: "Your server, linked on ListenBrainz.",
+    playable: true,
     enabledKey: "navidromeEnabled",
   },
 };
@@ -139,7 +140,7 @@ export function normalizeBrainzSettings(input: Partial<BrainzPlayerSettings> | n
   (saving replaces the whole object on ListenBrainz).
 */
 let current: BrainzPlayerSettings | null = null;
-let submitListens = true;
+let submitListens: boolean | null = null;
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
 
@@ -179,21 +180,32 @@ export function readEnabledPlaybackSources(): PlaybackSourceId[] {
     if (id === "spotify") out.push("spotify");
     else if (id === "youtube") out.push("youtube");
     else if (id === "internetArchive") out.push("internet-archive");
+    else if (id === "navidrome") out.push("navidrome");
   }
   return out;
 }
 
-/** Whether played tracks are submitted as listens. This tab only; on by default. */
+/** Whether played tracks are submitted as listens. Kept in a cookie in this browser; on by default. */
 export function readSubmitListens(): boolean {
+  submitListens ??= readPrefCookie().submitListens;
   return submitListens;
 }
 
 export function writeSubmitListens(on: boolean) {
   submitListens = on;
+  writePrefCookie({ submitListens: on });
   emit();
 }
 
-/** YouTube Data API key for searching YouTube. Set by whoever deploys Undertone, never by the user. */
+let youtubeKeyFromListenBrainz = "";
+
+/** Set by the auth provider: the YouTube key listenbrainz.org's own player uses (password sign-in only). */
+export function setYoutubeApiKey(key: string | null) {
+  youtubeKeyFromListenBrainz = key ?? "";
+  emit();
+}
+
+/** YouTube Data API key for search: ListenBrainz's own, or one set by whoever deploys Undertone. */
 export function readYoutubeApiKey(): string {
-  return process.env.NEXT_PUBLIC_YOUTUBE_API_KEY ?? "";
+  return youtubeKeyFromListenBrainz || process.env.NEXT_PUBLIC_YOUTUBE_API_KEY || "";
 }

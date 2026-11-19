@@ -1,9 +1,10 @@
 "use client";
 
 import * as React from "react";
+import { FlairName, HOVER_FLAIRS } from "@/components/ui/flair-name";
 import { ListBox, Label, Select } from "@heroui/react";
-import { ErrorNote, Link, Loading, Page, cx } from "@/components/ui";
-import { SaveBar, SettingsGate, SettingsPanel, SettingsSection, useSave } from "@/components/settings/settings-kit";
+import { ErrorNote, Link, Loading, Page } from "@/components/ui";
+import { SaveBar, PasswordGate, SettingsGate, SettingsPanel, SettingsSection, useSave } from "@/components/settings/settings-kit";
 import { useLB } from "@/lib/use-lb";
 import { FlairEnum, type Flair } from "@/lib/enums";
 import { useApi, useAuth, type AuthUser } from "@/lib/auth";
@@ -11,7 +12,9 @@ import { useApi, useAuth, type AuthUser } from "@/lib/auth";
 export default function FlairSettingsPage() {
   return (
     <Page title="Flair" subtitle="A small name effect shown next to your username.">
-      <SettingsGate what="choose a flair">{(user) => <FlairForm user={user} />}</SettingsGate>
+      <PasswordGate what="your flair">
+        <SettingsGate what="choose a flair">{(user) => <FlairForm user={user} />}</SettingsGate>
+      </PasswordGate>
     </Page>
   );
 }
@@ -39,22 +42,6 @@ const FLAIR_OPTIONS = (Object.keys(FlairEnum) as Array<keyof typeof FlairEnum>).
   label: FLAIR_LABELS[k],
 }));
 
-// Only a few flairs get a preview effect; the rest are named. Transform-only, no gradients.
-const PREVIEWED: Flair[] = ["shake", "wave", "flip-horizontal", "flip-vertical"];
-
-const PREVIEW_CSS = `
-@keyframes ub-flair-shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-2px); } 75% { transform: translateX(2px); } }
-@keyframes ub-flair-wave { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
-@keyframes ub-flair-flip-h { 0%,100% { transform: scaleX(1); } 50% { transform: scaleX(-1); } }
-@keyframes ub-flair-flip-v { 0%,100% { transform: scaleY(1); } 50% { transform: scaleY(-1); } }
-.ub-flair-preview { display: inline-block; font-size: 20px; font-weight: 500; }
-.ub-flair-shake { animation: ub-flair-shake 0.6s ease-in-out infinite; }
-.ub-flair-wave { animation: ub-flair-wave 1.2s ease-in-out infinite; }
-.ub-flair-flip-horizontal { animation: ub-flair-flip-h 2.4s ease-in-out infinite; }
-.ub-flair-flip-vertical { animation: ub-flair-flip-v 2.4s ease-in-out infinite; }
-@media (prefers-reduced-motion: reduce) { .ub-flair-preview { animation: none !important; } }
-`;
-
 function FlairForm({ user }: { user: AuthUser }) {
   const { data: flairs, error, isLoading, mutate } = useLB(["all-flairs"], (api) => api.getUserFlairs());
 
@@ -78,24 +65,23 @@ function FlairForm({ user }: { user: AuthUser }) {
 
   return (
     <div>
-      <style>{PREVIEW_CSS}</style>
       <SettingsSection
         title="Your flair"
         description={
           <>
-            Flairs are a perk for donors. A donation unlocks them for a month or longer, and{" "}
+            A perk for{" "}
             <Link href="/donors" className="text-ink-2 underline underline-offset-2">
-              the donors page
-            </Link>{" "}
-            explains how.
+              donors
+            </Link>
+            .
           </>
         }
         summary={
           unlocked === undefined
             ? null
             : unlocked
-              ? "Unlocked. Your flair is shown next to your name."
-              : "Locked. You can pick one now, but it shows after your next donation."
+              ? "Unlocked."
+              : "Locked until your next donation."
         }
       >
         <SettingsPanel>
@@ -131,15 +117,15 @@ function FlairForm({ user }: { user: AuthUser }) {
 
               <div className="mt-4 flex min-h-[72px] items-center justify-center rounded-[12px] bg-raised px-4 py-6">
                 <span
-                  className={cx("ub-flair-preview", PREVIEWED.includes(selected) && `ub-flair-${selected}`)}
+                  className="text-[20px] font-medium"
                   aria-label={`Preview of ${user.name} with ${FLAIR_OPTIONS.find((o) => o.value === selected)?.label ?? "no flair"}`}
                 >
-                  {user.name}
+                  <FlairName key={selected} name={user.name} flair={selected} active />
                 </span>
               </div>
               <p className="mt-2 text-[12px] text-ink-3">
                 Preview: {FLAIR_OPTIONS.find((o) => o.value === selected)?.label ?? "No flair"}
-                {PREVIEWED.includes(selected) ? "" : ". This flair is shown as a name only in the preview."}
+                {HOVER_FLAIRS.has(selected) ? ". Others see it when they point at your name." : ""}
               </p>
             </>
           ) : null}

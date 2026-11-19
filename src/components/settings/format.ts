@@ -35,6 +35,27 @@ export function listTimezones(): string[] {
   return zones;
 }
 
+/** The zone a name resolves to in this browser, so aliases compare equal (Europe/Kyiv and Europe/Kiev). */
+function canonicalZone(zone: string): string {
+  try {
+    return new Intl.DateTimeFormat("en-US", { timeZone: zone }).resolvedOptions().timeZone;
+  } catch {
+    return zone;
+  }
+}
+
+/** Whether two timezone names are the same zone, aliases included. */
+export function sameZone(a: string | null | undefined, b: string | null | undefined): boolean {
+  if (!a || !b) return false;
+  return a === b || canonicalZone(a) === canonicalZone(b);
+}
+
+/** The entry in `zones` that is the same zone as `zone` (an exact match first), if any. */
+export function matchZone(zones: string[], zone: string | null | undefined): string | undefined {
+  if (!zone) return undefined;
+  return zones.find((z) => z === zone) ?? zones.find((z) => sameZone(z, zone));
+}
+
 export function browserTimezone(): string | undefined {
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone;

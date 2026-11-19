@@ -182,3 +182,19 @@ body {
 .flex-1 {
   min-width: 0;
 }
+
+/* Sign-in progress: a bar that sweeps across while the server is working. */
+@keyframes signin-sweep {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(250%); }
+}
+.signin-sweep { animation: signin-sweep 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+@keyframes signin-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.7); }
+}
+.signin-pulse { animation: signin-pulse 1.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .signin-sweep { animation: none; transform: none; width: 100% !important; opacity: 0.5; }
+  .signin-pulse { animation: none; }
+}

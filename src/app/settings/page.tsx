@@ -3,10 +3,10 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@heroui/react";
-import { Page, Link } from "@/components/ui";
+import { Page, Link, SwitchRow, UserAvatar } from "@/components/ui";
 import { OutButton, SettingsGate, SettingsPanel, SettingsSection } from "@/components/settings/settings-kit";
 import { maskToken } from "@/components/settings/format";
-import { useAuth } from "@/lib/auth";
+import { gravatarUrl, useAuth } from "@/lib/auth";
 import { LB_WEB_URL, REPO_URL } from "@/lib/config";
 
 export default function AccountSettingsPage() {
@@ -48,7 +48,7 @@ function AccountForm({ name, token }: { name: string; token: string }) {
     <div>
       <SettingsSection
         title="Username"
-        description="Your ListenBrainz username. It is set on listenbrainz.org, so it cannot be changed here."
+        description="Set on listenbrainz.org; it can't be changed here."
       >
         <SettingsPanel className="flex flex-wrap items-center justify-between gap-3">
           <span className="text-[16px] font-medium">{name}</span>
@@ -60,7 +60,7 @@ function AccountForm({ name, token }: { name: string; token: string }) {
 
       <SettingsSection
         title="Email"
-        description="Your MetaBrainz email address, shown only to you. ListenBrainz shares it only with your own session, so Undertone can show it after a password sign-in. It is never stored."
+        description="Shown only to you. Never stored."
       >
         <SettingsPanel className="flex flex-wrap items-center justify-between gap-3">
           {account ? (
@@ -87,17 +87,19 @@ function AccountForm({ name, token }: { name: string; token: string }) {
         ) : null}
       </SettingsSection>
 
+      <ProfilePicture name={name} />
+
       <SettingsSection
         title="Signed in with"
         description={
           account
-            ? "Your MetaBrainz username and password. Undertone's server used the password once and kept nothing; your listenbrainz.org session is a cookie in this browser."
-            : "Your ListenBrainz token. Undertone's server is not involved."
+            ? "Your MetaBrainz password, used once and never stored."
+            : "Your ListenBrainz token, kept in this browser."
         }
       >
         <SettingsPanel>
           <p className="text-[14px] leading-5 text-ink-2">
-            Undertone&apos;s server stores nothing about you.{" "}
+            The server keeps nothing about you except your shared profile picture.{" "}
             <Link href={REPO_URL} className="text-[14px]">
               Read the source
             </Link>
@@ -110,8 +112,8 @@ function AccountForm({ name, token }: { name: string; token: string }) {
         title="User token"
         description={
           account
-            ? "Read from your listenbrainz.org session each time you open Undertone, and held in memory only. It is sent only to api.listenbrainz.org."
-            : "Undertone signs each request with this token. It is kept only in this browser and is sent only to api.listenbrainz.org."
+            ? "Read from your session, held in memory, sent only to ListenBrainz."
+            : "Kept in this browser, sent only to ListenBrainz."
         }
       >
         <SettingsPanel>
@@ -134,8 +136,7 @@ function AccountForm({ name, token }: { name: string; token: string }) {
         </SettingsPanel>
         <div className="mt-4">
           <p className="text-[14px] leading-5 text-ink-2">
-            Need a new token? Resetting it needs a session on listenbrainz.org, so it happens there. The old token stops
-            working everywhere, including here: sign out and paste the new one.
+            Resetting happens on listenbrainz.org. The old token then stops working here too.
           </p>
           <div className="mt-3">
             <OutButton href={`${LB_WEB_URL}/settings/resettoken/`}>Reset token on ListenBrainz</OutButton>
@@ -147,8 +148,8 @@ function AccountForm({ name, token }: { name: string; token: string }) {
         title="Sign out"
         description={
           account
-            ? "Deletes the session cookie from this browser and logs you out on listenbrainz.org."
-            : "Removes the token from this browser. Your ListenBrainz account is not affected."
+            ? "Also logs you out on listenbrainz.org."
+            : "Removes the token from this browser."
         }
       >
         <SettingsPanel className="flex justify-end">
@@ -158,5 +159,63 @@ function AccountForm({ name, token }: { name: string; token: string }) {
         </SettingsPanel>
       </SettingsSection>
     </div>
+  );
+}
+
+/** "Show my picture to others": the one thing Undertone's server stores (src/lib/server/avatar-store.ts). */
+function ProfilePicture({ name }: { name: string }) {
+  const { account, setAvatarShared } = useAuth();
+  const [pending, setPending] = React.useState(false);
+  const [error, setError] = React.useState<string>();
+
+  const change = async (shared: boolean) => {
+    setPending(true);
+    setError(undefined);
+    try {
+      await setAvatarShared(shared);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setPending(false);
+    }
+  };
+
+  return (
+    <SettingsSection
+      title="Profile picture"
+      description="Your Gravatar, from your MetaBrainz email."
+    >
+      <SettingsPanel>
+        {!account ? (
+          <p className="text-[14px] leading-5 text-ink-2">
+            Signed in with a token, which can&apos;t read your email, so Undertone can&apos;t find your Gravatar.{" "}
+            <Link href="/login" className="text-[14px]">
+              Sign in with your password
+            </Link>{" "}
+            to show it.
+          </p>
+        ) : !account.gravatarHash ? (
+          <p className="text-[14px] leading-5 text-ink-2">Your MetaBrainz account has no email, so there is no Gravatar to show.</p>
+        ) : (
+          <div className="flex items-start gap-4">
+            <UserAvatar name={name} size={48} src={gravatarUrl(account.gravatarHash, 96)} />
+            <div className="min-w-0 flex-1">
+              <SwitchRow
+                label="Show my picture to others"
+                description="Shows your Gravatar on your profile. Undertone keeps only its key; turning this off deletes it."
+                isSelected={!!account.avatarShared}
+                isDisabled={pending}
+                onChange={change}
+              />
+              {error ? (
+                <p role="alert" className="mt-2 text-[13px] text-negative">
+                  {error}
+                </p>
+              ) : null}
+            </div>
+          </div>
+        )}
+      </SettingsPanel>
+    </SettingsSection>
   );
 }

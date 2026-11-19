@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Button, toast } from "@heroui/react";
 import { Loading, Page, SwitchRow } from "@/components/ui";
-import { SaveBar, SettingsPanel, SettingsSection, useMounted, useSave } from "@/components/settings/settings-kit";
+import { OutButton, PasswordGate, SaveBar, SettingsPanel, SettingsSection, useMounted, useSave } from "@/components/settings/settings-kit";
 import {
   ALL_BRAINZ_SOURCE_IDS,
   hasSavedThisTab,
@@ -17,14 +17,20 @@ import {
   type BrainzSourceId,
 } from "@/components/settings/player-prefs";
 import { useAuth } from "@/lib/auth";
-import { connectSpotify, disconnectSpotify, isSpotifyConnected, spotifyConfigured } from "@/lib/spotify";
+import { isSpotifyConnected, SPOTIFY_SETTINGS_URL, spotifyCanStream, spotifyConfigured, subscribeSpotify } from "@/lib/spotify";
 
 export default function PlayerSettingsPage() {
   const mounted = useMounted();
   const { user } = useAuth();
   return (
     <Page title="Player" subtitle="How Undertone plays music, and which sources it uses.">
-      {mounted && user !== undefined ? <PlayerForm /> : <Loading label="Reading your player settings" />}
+      {mounted && user !== undefined ? (
+        <PasswordGate what="your player settings">
+          <PlayerForm />
+        </PasswordGate>
+      ) : (
+        <Loading label="Reading your player settings" />
+      )}
     </Page>
   );
 }
@@ -93,7 +99,7 @@ function BrainzSettingsForm() {
     <>
       <SettingsSection
         title="Player"
-        description="Turn the player on or off, and choose whether it shows notices when a track can't play."
+        description="Saved to ListenBrainz."
       >
         <SettingsPanel className="flex flex-col gap-4">
           <SwitchRow
@@ -113,7 +119,7 @@ function BrainzSettingsForm() {
 
       <SettingsSection
         title="Playback sources"
-        description="Undertone tries the enabled sources from top to bottom. The order and the switches are saved to your ListenBrainz account."
+        description="Tried from top to bottom. Saved to ListenBrainz."
         summary={
           enabledCount
             ? `${enabledCount} of ${ALL_BRAINZ_SOURCE_IDS.length} enabled.${firstPlayable ? ` Playing first from ${SOURCE_INFO[firstPlayable].label}.` : " None of them can play in Undertone."}`
@@ -137,7 +143,7 @@ function BrainzSettingsForm() {
                     label={info.label}
                     description={
                       spotifyBlocked
-                        ? "Not available on this site yet (see Spotify below)."
+                        ? "Connect it on ListenBrainz first."
                         : info.note
                     }
                   />
@@ -168,7 +174,7 @@ function BrainzSettingsForm() {
 
           {!savedHere && account ? (
             <p className="mt-4 text-[13px] leading-5 text-ink-2">
-              You haven&apos;t saved player settings on ListenBrainz yet, so these are the defaults.
+              Defaults: nothing saved on ListenBrainz yet.
             </p>
           ) : !savedHere ? (
             <p className="mt-4 text-[13px] leading-5 text-ink-2">
@@ -181,7 +187,7 @@ function BrainzSettingsForm() {
           <div className="mt-4 flex flex-col gap-3">
             <p className="text-[12px] leading-5 text-ink-3">
               {signedIn
-                ? "Saved to your ListenBrainz account only. Undertone keeps nothing in this browser or on its server."
+                ? "Saved to ListenBrainz only."
                 : "Sign in to save these to your ListenBrainz account."}
             </p>
             <SaveBar
@@ -199,55 +205,26 @@ function BrainzSettingsForm() {
   );
 }
 
-/** Spotify is signed in per browser with PKCE. The site must have NEXT_PUBLIC_SPOTIFY_CLIENT_ID set. */
+/** Spotify is the account linked on listenbrainz.org; Undertone uses it and has no Spotify sign-in of its own. */
 function SpotifySection() {
-  const configured = spotifyConfigured();
-  const [connected, setConnected] = React.useState(() => isSpotifyConnected());
-  const [busy, setBusy] = React.useState(false);
-
-  const onConnect = async () => {
-    setBusy(true);
-    try {
-      await connectSpotify();
-    } catch (err) {
-      toast.danger("Couldn't start Spotify sign-in", { description: (err as Error).message });
-      setBusy(false);
-    }
-  };
-
-  const onDisconnect = () => {
-    disconnectSpotify();
-    setConnected(false);
-    toast("Spotify disconnected in this browser");
-  };
+  const connected = React.useSyncExternalStore(subscribeSpotify, isSpotifyConnected, () => false);
+  const canStream = React.useSyncExternalStore(subscribeSpotify, spotifyCanStream, () => false);
 
   return (
     <SettingsSection
       title="Spotify"
-      description="Spotify plays through Spotify's own player in this browser and needs a Spotify Premium account. Like your ListenBrainz sign-in, the Spotify sign-in is kept in this browser."
-      summary={!configured ? "Not available on this site." : connected ? "Connected in this browser." : "Not connected."}
+      description="The account linked on ListenBrainz. Needs Premium."
+      summary={!connected ? "Not connected on ListenBrainz." : canStream ? "Connected through ListenBrainz." : "Connected without playback permission."}
     >
       <SettingsPanel className="flex flex-wrap items-center justify-between gap-3">
-        {!configured ? (
-          <p className="text-[14px] leading-5 text-ink-2">
-            Spotify isn&apos;t set up for this site: the site owner must set NEXT_PUBLIC_SPOTIFY_CLIENT_ID (create an app at
-            developer.spotify.com and add the /spotify-callback redirect URI).
-          </p>
-        ) : connected ? (
-          <>
-            <span className="text-[14px] text-ink-2">Connected. Spotify tracks play in Undertone.</span>
-            <Button variant="secondary" onPress={onDisconnect}>
-              Disconnect
-            </Button>
-          </>
-        ) : (
-          <>
-            <span className="text-[14px] text-ink-2">Connect to play tracks through Spotify.</span>
-            <Button onPress={onConnect} isPending={busy} isDisabled={busy}>
-              Connect Spotify
-            </Button>
-          </>
-        )}
+        <p className="min-w-0 flex-1 basis-[240px] text-[14px] leading-5 text-ink-2">
+          {!connected
+            ? "No Spotify account is linked to your ListenBrainz account."
+            : canStream
+              ? "Connected. Spotify tracks play in Undertone."
+              : "Spotify is linked, but only for listening history. To play here, reconnect it on ListenBrainz with playback allowed."}
+        </p>
+        <OutButton href={SPOTIFY_SETTINGS_URL}>{connected ? "Manage on ListenBrainz" : "Connect on ListenBrainz"}</OutButton>
       </SettingsPanel>
     </SettingsSection>
   );
@@ -259,8 +236,8 @@ function BrowserOnlySection() {
   const youtubeSearch = readYoutubeApiKey() !== "";
   return (
     <SettingsSection
-      title="This tab only"
-      description="ListenBrainz has no field for these and Undertone doesn't store settings, so they reset when you close the tab. The volume works the same way."
+      title="This browser"
+      description="ListenBrainz has no field for these, so they're kept in a cookie here, along with the volume."
     >
       <SettingsPanel className="flex flex-col gap-4">
         <SwitchRow
@@ -270,12 +247,12 @@ function BrowserOnlySection() {
             setSubmit(v);
           }}
           label="Submit listens while playing"
-          description="When on, the tracks you play are added to your ListenBrainz history. Needs you to be signed in."
+          description="Adds what you play to your listening history."
         />
         <p className="text-[13px] leading-5 text-ink-2">
           {youtubeSearch
-            ? "YouTube search is available on this site."
-            : "YouTube search isn't set up on this site, so YouTube plays only tracks that already carry a YouTube link. The site owner can enable it with NEXT_PUBLIC_YOUTUBE_API_KEY."}
+            ? "YouTube search is on."
+            : "YouTube search is off: only tracks with a YouTube link play there."}
         </p>
       </SettingsPanel>
     </SettingsSection>

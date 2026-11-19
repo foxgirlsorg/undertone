@@ -22,6 +22,8 @@ import { toast } from "@heroui/react";
 import type APIService from "@/lib/api";
 import { useAuth, type AuthUser } from "@/lib/auth";
 import { getSpotifyToken, spotifyConfigured } from "@/lib/spotify";
+import { findNavidromeStream, isNavidromeConnected } from "@/lib/navidrome";
+import { readPrefCookie, writePrefCookie } from "@/lib/pref-cookie";
 import {
   getArtistMBIDs,
   getArtistName,
@@ -83,14 +85,21 @@ const YT_OPTS = {
 const ERROR_NOT_FOUND = "Couldn't find this track on your enabled sources";
 const ERROR_NO_SOURCE = "No playback source is enabled. Turn one on in the player settings.";
 const ERROR_PLAYER_OFF = "The player is turned off. Turn it on in the player settings.";
-const ERROR_SPOTIFY_NOT_CONNECTED = "Connect Spotify in the player settings to play through Spotify.";
+const ERROR_SPOTIFY_NOT_CONNECTED = "Connect Spotify on ListenBrainz (Settings, Music services) to play through Spotify.";
+const ERROR_NEEDS_PASSWORD = "Playing music needs a password sign-in, not a token.";
+const ERROR_SIGNED_OUT = "Sign in with your password to play music.";
 
 /** Where a source's tracks come from, as ListenBrainz and Undertone label them. */
 const SERVICE_META: Record<Source, { music_service: string; media_player: string }> = {
   youtube: { music_service: "youtube.com", media_player: "YouTube" },
   "internet-archive": { music_service: "archive.org", media_player: "Internet Archive" },
   spotify: { music_service: "spotify.com", media_player: "Spotify" },
+  navidrome: { music_service: "navidrome", media_player: "Navidrome" },
 };
+
+/** Sources played through the shared <audio> element. */
+const isAudioSource = (src: Source | null | undefined): src is "internet-archive" | "navidrome" =>
+  src === "internet-archive" || src === "navidrome";
 
 const INITIAL_STATE: PlayerState = {
   queue: [],
@@ -203,6 +212,8 @@ type ControllerDeps = {
 /** Live readers the controller needs; wired by connect() from an effect, never during render. */
 type Connection = {
   getUser: () => AuthUser | null | undefined;
+  /** True with a password sign-in: only then does ListenBrainz share the player settings and linked services. */
+  getFullSignIn: () => boolean;
 };
 
 /** Mutable bookkeeping that is not published to React. */
@@ -240,6 +251,7 @@ type Internal = {
 function createController({ publish, api }: ControllerDeps) {
   const st: PlayerState = { ...INITIAL_STATE };
   let getUser: Connection["getUser"] = () => null;
+  let getFullSignIn: Connection["getFullSignIn"] = () => false;
   /** Callers waiting for the react-youtube player to report ready (see ensureYouTube). */
   let ytWaiters: Array<(player: YouTubePlayer) => void> = [];
   const s: Internal = {
@@ -297,7 +309,7 @@ function createController({ publish, api }: ControllerDeps) {
           durationMs: dur > 0 ? Math.round(dur * 1000) : 0,
         };
       }
-      if (s.active === "internet-archive" && s.audio) {
+      if (isAudioSource(s.active) && s.audio) {
         const d = s.audio.duration;
         return {
           progressMs: Math.round(s.audio.currentTime * 1000),
@@ -464,20 +476,20 @@ function createController({ publish, api }: ControllerDeps) {
     const a = new Audio();
     a.preload = "auto";
     a.addEventListener("playing", () => {
-      if (s.active !== "internet-archive") return;
+      if (!isAudioSource(s.active)) return;
       s.waiter?.(true);
-      markPlaying("internet-archive");
+      markPlaying(s.active);
     });
     a.addEventListener("pause", () => {
-      if (s.active === "internet-archive" && !s.loading && !a.ended) onPaused();
+      if (isAudioSource(s.active) && !s.loading && !a.ended) onPaused();
     });
     a.addEventListener("ended", () => {
-      if (s.active === "internet-archive") next();
+      if (isAudioSource(s.active)) next();
     });
     a.addEventListener("error", () => {
-      if (s.active !== "internet-archive" || !a.getAttribute("src")) return;
+      if (!isAudioSource(s.active) || !a.getAttribute("src")) return;
       if (s.waiter) s.waiter(false);
-      else failMidTrack("internet-archive");
+      else failMidTrack(s.active);
     });
     s.audio = a;
     return a;
@@ -663,11 +675,23 @@ function createController({ publish, api }: ControllerDeps) {
     return false;
   }
 
+  async function tryNavidrome(l: Listen, id: number): Promise<boolean> {
+    if (!isNavidromeConnected()) return false;
+    const meta = l.track_metadata;
+    const streamUrl = await findNavidromeStream(meta.track_name, meta.artist_name, meta.release_name).catch(() => undefined);
+    return playAudioUrl("navidrome", streamUrl, id);
+  }
+
   async function tryInternetArchive(l: Listen, id: number): Promise<boolean> {
     const streamUrl = await fetchArchiveStreamUrl(api, l).catch(() => undefined);
+    return playAudioUrl("internet-archive", streamUrl, id);
+  }
+
+  /** Plays a URL in the shared <audio> element for an audio source; false if it doesn't start. */
+  async function playAudioUrl(source: "internet-archive" | "navidrome", streamUrl: string | undefined, id: number): Promise<boolean> {
     if (id !== s.loadId || !streamUrl) return false;
     const audio = ensureAudio();
-    s.active = "internet-archive";
+    s.active = source;
     const ok = await attempt(() => {
       audio.src = streamUrl;
       audio.volume = st.volume / 100;
@@ -689,6 +713,12 @@ function createController({ publish, api }: ControllerDeps) {
   async function runLoad(l: Listen, id: number, exclude: Source[]) {
     // A Premium problem found earlier still explains a failure in this session.
     s.sourceError = s.spotifyPremiumDenied ? SPOTIFY_PREMIUM_MESSAGE : null;
+    if (!getFullSignIn()) {
+      s.loading = false;
+      s.active = null;
+      commit({ isPlaying: false, source: "none", error: getUser() ? ERROR_NEEDS_PASSWORD : ERROR_SIGNED_OUT });
+      return;
+    }
     if (!readBrainzSettingsOrDefault().brainzplayerEnabled) {
       s.loading = false;
       s.active = null;
@@ -703,7 +733,9 @@ function createController({ publish, api }: ControllerDeps) {
           ? await tryYouTube(l, id)
           : src === "spotify"
             ? await trySpotify(l, id)
-            : await tryInternetArchive(l, id);
+            : src === "navidrome"
+              ? await tryNavidrome(l, id)
+              : await tryInternetArchive(l, id);
       if (id !== s.loadId) return;
       if (ok) return;
     }
@@ -728,7 +760,7 @@ function createController({ publish, api }: ControllerDeps) {
   function pauseActive() {
     try {
       if (s.active === "youtube") s.yt?.pauseVideo();
-      else if (s.active === "internet-archive") s.audio?.pause();
+      else if (isAudioSource(s.active)) s.audio?.pause();
       else if (s.active === "spotify") void s.spotify?.player.pause().catch(() => {});
     } catch {
       /* ignore: the source is gone */
@@ -738,7 +770,7 @@ function createController({ publish, api }: ControllerDeps) {
   function playActive() {
     try {
       if (s.active === "youtube") s.yt?.playVideo();
-      else if (s.active === "internet-archive") {
+      else if (isAudioSource(s.active)) {
         s.audio?.play().catch(() => onPaused());
       } else if (s.active === "spotify") {
         void s.spotify?.player.resume().catch(() => onPaused());
@@ -919,7 +951,7 @@ function createController({ publish, api }: ControllerDeps) {
     const target = clamp(ms, 0, max);
     try {
       if (s.active === "youtube" && s.yt) s.yt.seekTo(target / 1000, true);
-      else if (s.active === "internet-archive" && s.audio) s.audio.currentTime = target / 1000;
+      else if (isAudioSource(s.active) && s.audio) s.audio.currentTime = target / 1000;
       else if (s.active === "spotify" && s.spotify) void s.spotify.player.seek(target).catch(() => {});
       else return;
     } catch {
@@ -930,6 +962,7 @@ function createController({ publish, api }: ControllerDeps) {
 
   function setVolume(v: number) {
     const volume = clamp(Math.round(v), 0, 100);
+    writePrefCookie({ volume });
     try {
       s.yt?.setVolume(volume);
     } catch {
@@ -951,6 +984,7 @@ function createController({ publish, api }: ControllerDeps) {
     getState: () => st,
     connect: (conn: Connection) => {
       getUser = conn.getUser;
+      getFullSignIn = conn.getFullSignIn;
     },
     youtube,
     playListen,
@@ -981,6 +1015,10 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     if (account?.brainzplayer) rememberBrainzSettings(account.brainzplayer);
   }, [account]);
   const userRef = React.useRef<AuthUser | null | undefined>(user);
+  const accountRef = React.useRef(account);
+  React.useEffect(() => {
+    accountRef.current = account;
+  }, [account]);
   const [snapshot, setSnapshot] = React.useState<PlayerState>(INITIAL_STATE);
   const [ctrl] = React.useState<Controller>(() => createController({ publish: setSnapshot, api }));
   const [expanded, setExpanded] = React.useState(false);
@@ -988,7 +1026,10 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     ctrl.connect({
       getUser: () => userRef.current,
+      getFullSignIn: () => !!accountRef.current,
     });
+    // The volume kept in this browser's cookie (src/lib/pref-cookie.ts).
+    ctrl.setVolume(readPrefCookie().volume);
   }, [ctrl]);
 
   React.useEffect(() => {

@@ -3,7 +3,7 @@
 import * as React from "react";
 
 /** The playback sources the player can use. */
-export type PlayerSource = "youtube" | "internet-archive" | "spotify" | "none";
+export type PlayerSource = "youtube" | "internet-archive" | "spotify" | "navidrome" | "none";
 
 export type PlayerState = {
   queue: Listen[];

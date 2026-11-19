@@ -50,6 +50,7 @@ const SOURCE_LABEL = {
   youtube: "YouTube",
   "internet-archive": "Internet Archive",
   spotify: "Spotify",
+  navidrome: "Navidrome",
 } as const;
 
 /** Artist names, linked to the first credited artist when we know its MBID. */

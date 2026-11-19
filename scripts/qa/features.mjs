@@ -39,7 +39,14 @@ const browser = await puppeteer.launch({
 const results = [];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function newPage({ signedIn = true } = {}) {
+/** A mocked password session for tests of what only a full sign-in may do. No real account is involved. */
+const sessionAccount = () => ({
+  name: U, token: "test-token-undertone-qa", email: "qa@example.com", emailVerified: true, gravatarHash: null,
+  brainzplayer: null, flair: null, timezone: "UTC", troi: { export_to_spotify: false },
+  spotify: null, youtubeApiKey: null, avatarShared: false,
+});
+
+async function newPage({ signedIn = true, session = false } = {}) {
   const page = await browser.newPage();
   await page.setViewport({ width: WIDTH, height: 900, isMobile: WIDTH < 700, hasTouch: WIDTH < 700 });
   page.writes = [];
@@ -95,7 +102,10 @@ async function newPage({ signedIn = true } = {}) {
     }
     return req.continue();
   });
-  if (signedIn) await page.evaluateOnNewDocument(() => localStorage.setItem("undertone.token", "test-token-undertone-qa"));
+  if (session) {
+    page.sessionMock = { password: "qa-fake-password", signedIn: true, loginBodies: [], account: sessionAccount() };
+    await page.evaluateOnNewDocument(() => localStorage.clear());
+  } else if (signedIn) await page.evaluateOnNewDocument(() => localStorage.setItem("undertone.token", "test-token-undertone-qa"));
   else await page.evaluateOnNewDocument(() => { if (!sessionStorage.getItem("qa-started")) { localStorage.clear(); sessionStorage.setItem("qa-started", "1"); } });
   return page;
 }
@@ -216,7 +226,7 @@ await test("play a listen (player starts a source lookup)", async (page) => {
   const status = await page.evaluate(() => document.body.innerText.match(/via YouTube|via Internet Archive|Couldn't find this track|Finding a source/)?.[0]);
   assert(status, "no player status shown");
   return `${status}; source requests: ${seen.length}`;
-});
+}, { session: true });
 
 await test("queue sheet opens", async (page) => {
   await go(page, `/user/${U}/listens`);
@@ -312,7 +322,8 @@ await test("taste: loved list + pins", async (page) => {
 await test("settings: timezone save", async (page) => {
   await go(page, "/settings/timezone");
   const input = await page.$("main input");
-  await input.click();
+  await input.click({ clickCount: 3 });
+  await page.keyboard.press("Backspace");
   await input.type("Europe/Ber");
   await sleep(800);
   if (WIDTH < 700) {
@@ -328,7 +339,7 @@ await test("settings: timezone save", async (page) => {
   const w = wrote(page, /settings\/timezone/);
   assert(w, "no timezone POST");
   return JSON.stringify(w.body);
-});
+}, { session: true });
 
 await test("settings: recommendations (troi) save", async (page) => {
   await go(page, "/settings/recommendations");
@@ -336,7 +347,7 @@ await test("settings: recommendations (troi) save", async (page) => {
   await click(page, "button", "Save");
   await sleep(1000);
   assert(wrote(page, /settings\/troi/), "no troi POST");
-});
+}, { session: true });
 
 await test("settings: flair save", async (page) => {
   await go(page, "/settings/flair");
@@ -346,7 +357,7 @@ await test("settings: flair save", async (page) => {
   await click(page, "button", "Save");
   await sleep(1000);
   assert(wrote(page, /settings\/flair/), "no flair POST");
-});
+}, { session: true });
 
 await test("settings: player syncs full BrainzPlayer object", async (page) => {
   await go(page, "/settings/player");
@@ -361,9 +372,25 @@ await test("settings: player syncs full BrainzPlayer object", async (page) => {
   assert(!missing.length, `missing fields: ${missing.join(",")} in ${JSON.stringify(w.body).slice(0, 200)}`);
   // Settings must never be kept in the browser: only the sign-in token may be there.
   const stored = await page.evaluate(() => [...Object.keys(localStorage), ...Object.keys(sessionStorage)].filter((k) => k !== "qa-started"));
-  const extra = stored.filter((k) => k !== "undertone.token");
-  assert(!extra.length, `settings left in browser storage: ${extra.join(",")}`);
+  assert(!stored.length, `settings left in browser storage: ${stored.join(",")}`);
   return JSON.stringify(body.dataSourcesPriority);
+}, { session: true });
+
+await test("token sign-in: settings and player locked", async (page) => {
+  for (const route of ["/settings/player", "/settings/timezone", "/settings/recommendations", "/settings/flair"]) {
+    await go(page, route);
+    const t = await page.evaluate(() => document.querySelector("main")?.innerText ?? "");
+    assert(/signed in with a token/i.test(t), `${route}: no token notice`);
+    assert(!/\bSave\b/.test(t), `${route}: still offers Save`);
+  }
+  await go(page, `/user/${U}/listens`);
+  await click(page, "button[aria-label^='Play ']", "");
+  await sleep(1500);
+  const msg = await page.evaluate(() => document.body.innerText.includes("needs a password sign-in"));
+  assert(msg, "player didn't say it needs a password sign-in");
+  await go(page, "/login");
+  const onLogin = await page.evaluate(() => location.pathname === "/login" && document.body.innerText.includes("with a token"));
+  assert(onLogin, "token user can't reach the sign-in page to upgrade");
 });
 
 await test("password sign-in: settings, email and avatar read from the session", async (page) => {

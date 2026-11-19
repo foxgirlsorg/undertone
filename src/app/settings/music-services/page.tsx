@@ -94,7 +94,7 @@ function ServicesArea({ user }: { user: AuthUser }) {
     <div>
       <SettingsSection
         title="Connected services"
-        description="Connecting and disconnecting happens on listenbrainz.org, because it needs your website session."
+        description="Managed on listenbrainz.org."
         summary={
           isLoading
             ? undefined

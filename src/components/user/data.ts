@@ -29,9 +29,10 @@ export async function fetchListensPage(
   api: APIService,
   userName: string,
   minTs?: number,
-  maxTs?: number
+  maxTs?: number,
+  count = 25
 ): Promise<ListensPage> {
-  const qs = new URLSearchParams({ count: "25" });
+  const qs = new URLSearchParams({ count: String(count) });
   // The API rejects min_ts and max_ts together, so only one is ever sent.
   if (maxTs) qs.set("max_ts", String(maxTs));
   else if (minTs) qs.set("min_ts", String(minTs));
