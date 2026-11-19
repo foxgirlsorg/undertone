@@ -108,7 +108,7 @@ function WhoYouFollow({ me }: { me: string }) {
   return (
     <Panel
       title="Who you follow"
-      aside={me ? <NextLink href={`/user/${encodeURIComponent(me)}`} className="hover:text-white">View all</NextLink> : null}
+      aside={me ? <NextLink href={`/user/${encodeURIComponent(me)}`} className="inline-flex min-h-11 items-center hover:text-white sm:min-h-0">View all</NextLink> : null}
     >
       {following.error && !following.data ? (
         <ErrorNote error={following.error} onRetry={() => void following.mutate()} />

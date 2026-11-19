@@ -35,7 +35,7 @@ export default function LoginPage() {
           <Tabs.ListContainer>
             <Tabs.List aria-label="Sign-in method">
               <Tabs.Tab id="password">
-                Username and password
+                Password
                 <Tabs.Indicator />
               </Tabs.Tab>
               <Tabs.Tab id="token">
@@ -224,8 +224,8 @@ function StoragePanel() {
         </li>
         <li>
           <span className="text-white">Your ListenBrainz session</span> is
-          handed straight back to your browser as a cookie only Undertone&apos;s
-          server can read when you send it. The server keeps no copy. Signing
+          handed straight back to your browser as a cookie that only Undertone&apos;s
+          pages can use. The server uses it for each request and keeps no copy. Signing
           out deletes the cookie and logs you out on listenbrainz.org.
         </li>
         <li>

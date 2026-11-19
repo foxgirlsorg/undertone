@@ -67,13 +67,13 @@ export function TopBar() {
         scrolled ? "border-b border-[#1a1a1a]" : "border-b border-transparent"
       )}
     >
-      <div className="mx-auto flex h-12 max-w-[1152px] items-center gap-6 px-4 sm:px-6 xl:px-0">
+      <div className="mx-auto flex h-12 max-w-[1152px] items-center gap-4 px-4 sm:px-6 lg:gap-6 xl:px-0">
         <NextLink href={user ? "/feed" : "/"} className="flex h-12 flex-none items-center gap-2 font-semibold">
           <Mark />
           <span className="text-[15px]">{PRODUCT_NAME}</span>
         </NextLink>
 
-        <nav aria-label="Main" className="hidden items-center gap-5 md:flex">
+        <nav aria-label="Main" className="hidden items-center gap-4 md:flex lg:gap-5">
           {nav.map((n) => (
             <NextLink
               key={n.label}
@@ -90,7 +90,7 @@ export function TopBar() {
         </nav>
 
         <form role="search" onSubmit={submit} className="ml-auto hidden md:block">
-          <label className="flex h-9 w-[260px] items-center gap-2 rounded-full bg-[#161616] px-3 text-ink-3 focus-within:bg-[#1c1c1c]">
+          <label className="flex h-9 w-[200px] items-center lg:w-[260px] gap-2 rounded-full bg-[#161616] px-3 text-ink-3 focus-within:bg-[#1c1c1c]">
             <Magnifier className="size-4 flex-none" />
             <span className="sr-only">Search</span>
             <input
