@@ -421,8 +421,9 @@ await test("password sign-in: settings, email and avatar read from the session",
     throw new Error(`no redirect to /feed: ${state}; logins=${JSON.stringify(page.sessionMock.loginBodies)}`);
   });
   // The mock hash has no Gravatar, so the image 404s and the initials show; the request proves it was tried.
-  await sleep(1000);
-  const avatar = await page.evaluate(() => performance.getEntriesByType("resource").some((e) => e.name.includes("gravatar.com/avatar/" + "0".repeat(64))));
+  const avatar = await page
+    .waitForFunction(() => performance.getEntriesByType("resource").some((e) => e.name.includes("gravatar.com/avatar/" + "0".repeat(64))), { timeout: 5000 })
+    .then(() => true, () => false);
   assert(avatar, "the top bar didn't ask Gravatar for the avatar");
   const stored = await page.evaluate(() => [...Object.keys(localStorage), ...Object.keys(sessionStorage)].filter((k) => k !== "qa-started"));
   assert(!stored.length, `password sign-in left things in browser storage: ${stored.join(",")}`);
