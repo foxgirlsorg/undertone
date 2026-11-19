@@ -6,7 +6,6 @@
 
 **An independent web client for ListenBrainz, your open music listening history.**
 
-[![Website](https://img.shields.io/badge/Website-foxgirls.org-de6161?style=flat-square)](https://foxgirls.org)
 [![Next.js](https://img.shields.io/badge/Next.js-16.4-de6161?style=flat-square&logo=nextdotjs&logoColor=white)](package.json)
 [![React](https://img.shields.io/badge/React-19.3-de6161?style=flat-square&logo=react&logoColor=white)](package.json)
 [![License](https://img.shields.io/badge/License-GPL--2.0-de6161?style=flat-square)](LICENSE)
