@@ -1,0 +1,1646 @@
+/* eslint-disable camelcase */
+
+
+// declaration typescript file doesn't exist for react-datetime-picker/dist/entry.nostyle.js so had to declare a dummy declaration.
+
+// TODO: Remove "| null" when backend stops sending fields with null
+interface AdditionalInfo {
+  artist_mbids?: Array<string> | null;
+  discnumber?: number | null;
+  duration_ms?: number | null;
+  duration?: number | null;
+  isrc?: string | null;
+  listening_from?: string | null; // Deprecated
+  music_service?: string | null;
+  recording_mbid?: string | null;
+  recording_msid?: string | null;
+  release_artist_name?: string | null;
+  release_artist_names?: Array<string> | null;
+  release_group_mbid?: string | null;
+  release_mbid?: string | null;
+  spotify_album_artist_ids?: Array<string> | null;
+  spotify_album_id?: string | null;
+  spotify_artist_ids?: Array<string> | null;
+  spotify_id?: string | null;
+  submission_client?: string | null;
+  youtube_id?: string | null;
+  origin_url?: string | null;
+  tags?: Array<string> | null;
+  track_mbid?: string | null;
+  tracknumber?: string | number | null;
+  work_mbids?: Array<string> | null;
+  funkwhale_id?: string | null;
+}
+
+declare type MBIDMappingArtist = {
+  artist_mbid: string;
+  artist_credit_name: string;
+  join_phrase: string;
+};
+
+declare type MBIDMappingUrlRel = {
+  type: string;
+  url: string;
+};
+
+declare type MBIDMapping = {
+  recording_name?: string;
+  recording_mbid: string;
+  release_mbid: string;
+  artist_mbids: Array<string>;
+  artists?: Array<MBIDMappingArtist>;
+  url_rels?: Array<MBIDMappingUrlRel>;
+  caa_id?: number;
+  caa_release_mbid?: string;
+  release_group_mbid?: string;
+  release_group_name?: string;
+};
+
+declare type BaseListenFormat = {
+  listened_at: number;
+  recording_msid?: string | null;
+  user_name?: string | null;
+  track_metadata: TrackMetadata;
+};
+
+declare type Listen = BaseListenFormat & {
+  listened_at_iso?: string | null;
+  playing_now?: boolean | null;
+  inserted_at?: number;
+};
+
+declare type Recommendation = Listen & {
+  latest_listened_at?: string;
+};
+
+declare type ListenBrainzUser = {
+  id?: number;
+  name: string;
+  auth_token?: string;
+  created?: number;
+};
+
+declare type ImportService = "lastfm" | "librefm";
+
+declare type ListenType = "single" | "playing_now" | "import";
+
+declare type SubmitListensPayload = {
+  listen_type: "single" | "playing_now" | "import";
+  payload: Array<Listen>;
+};
+
+declare type YoutubeUser = {
+  api_key?: string;
+};
+
+declare type MetaBrainzProjectUser = {
+  access_token?: string;
+};
+
+// Expect either a string or an Error or an html Response object
+declare type BrainzPlayerError =
+  | string
+  | { message?: string; status?: number; statusText?: string };
+
+declare type LastFmScrobblePage = {
+  recenttracks: {
+    track: any;
+  };
+};
+
+declare type LatestImportResponse = {
+  latest_import: number;
+  status?: {
+    state: ImportStatusT;
+    count: number;
+  };
+  error?: {
+    retry: boolean;
+    message?: string;
+  };
+};
+
+declare type UserArtistsResponse = {
+  payload: {
+    artists: Array<{
+      artist_mbid: string | null;
+      artist_name: string;
+      listen_count: number;
+    }>;
+    count: number;
+    last_updated: number;
+    offset: number;
+    range: UserStatsAPIRange;
+    total_artist_count: number;
+    user_id: string;
+    from_ts: number;
+    to_ts: number;
+  };
+};
+
+declare type UserReleasesResponse = {
+  payload: {
+    releases: Array<{
+      artist_mbids?: Array<string>;
+      artist_name: string;
+      release_mbid?: string;
+      release_name: string;
+      listen_count: number;
+      caa_id?: number;
+      caa_release_mbid?: string;
+      artists?: Array<MBIDMappingArtist>;
+    }>;
+    count: number;
+    last_updated: number;
+    offset: number;
+    range: UserStatsAPIRange;
+    total_release_count: number;
+    user_id: string;
+    from_ts: number;
+    to_ts: number;
+  };
+};
+
+declare type UserRecordingsResponse = {
+  payload: {
+    recordings: Array<{
+      artist_mbids?: Array<string>;
+      artist_name: string;
+      release_mbid?: string;
+      release_name?: string;
+      track_name: string;
+      recording_mbid?: string;
+      recording_msid?: string;
+      caa_id?: number;
+      caa_release_mbid?: string;
+      artists?: Array<MBIDMappingArtist>;
+      listen_count: number;
+    }>;
+    count: number;
+    last_updated: number;
+    offset: number;
+    range: UserStatsAPIRange;
+    total_recording_count: number;
+    user_id: string;
+    from_ts: number;
+    to_ts: number;
+  };
+};
+
+declare type UserReleaseGroupsResponse = {
+  payload: {
+    release_groups: Array<{
+      artist_mbids?: Array<string>;
+      artist_name: string;
+      release_group_mbid?: string;
+      release_group_name: string;
+      listen_count: number;
+      caa_id?: number;
+      caa_release_mbid?: string;
+      artists?: Array<MBIDMappingArtist>;
+    }>;
+    count: number;
+    last_updated: number;
+    offset: number;
+    range: UserStatsAPIRange;
+    total_release_group_count: number;
+    user_id: string;
+    from_ts: number;
+    to_ts: number;
+  };
+};
+
+declare type UserEntityResponse =
+  | UserArtistsResponse
+  | UserReleasesResponse
+  | UserRecordingsResponse
+  | UserReleaseGroupsResponse;
+
+declare type UserStatsAPIRange =
+  | "quarter"
+  | "half_yearly"
+  | "all_time"
+  | "year"
+  | "month"
+  | "week"
+  | "this_year"
+  | "this_month"
+  | "this_week";
+
+declare type UserEntityDatum = {
+  id: string;
+  entity: string;
+  entityType: Entity;
+  entityMBID?: string;
+  artist?: string;
+  artistMBID?: Array<string>;
+  release?: string;
+  releaseMBID?: string;
+  releaseGroup?: string;
+  releaseGroupMBID?: string;
+  idx: number;
+  count: number;
+  caaID?: number;
+  caaReleaseMBID?: string;
+  artists?: Array<MBIDMappingArtist>;
+};
+
+declare type UserEntityData = Array<UserEntityDatum>;
+
+declare type Entity = "artist" | "release" | "recording" | "release-group";
+
+declare type UserListeningActivityResponse = {
+  payload: {
+    from_ts: number;
+    to_ts: number;
+    last_updated: number;
+    user_id: string;
+    range: UserStatsAPIRange;
+    listening_activity: Array<{
+      from_ts: number;
+      to_ts: number;
+      time_range: string;
+      listen_count: number;
+    }>;
+  };
+};
+
+declare type UserListeningActivityDatum = {
+  id: string;
+  lastRangeCount?: number;
+  thisRangeCount?: number;
+  lastRangeTs?: number;
+  thisRangeTs?: number;
+};
+
+declare type UserListeningActivityData = Array<UserListeningActivityDatum>;
+
+declare type UserDailyActivityDatum = {
+  id: string;
+  data: Array<{
+    x: string | number;
+    y: number;
+  }>;
+};
+
+declare type UserDailyActivityData = Array<UserDailyActivityDatum>;
+
+declare type UserDailyActivityResponse = {
+  payload: {
+    from_ts: number;
+    to_ts: number;
+    last_updated: number;
+    user_id: string;
+    range: UserStatsAPIRange;
+    daily_activity: {
+      [day: string]: Array<{
+        hour: number;
+        listen_count: number;
+      }>;
+    };
+  };
+};
+
+declare type UserArtistActivityResponse = {
+  payload: {
+    artist_activity: Array<{
+      name: string;
+      artist_name?: string;
+      listen_count: number;
+      artist_mbid: string | null;
+      albums: Array<{
+        name: string;
+        listen_count: number;
+        release_group_mbid: string | null;
+      }>;
+    }>;
+    user_id?: string;
+    range: UserStatsAPIRange;
+    from_ts: number;
+    to_ts: number;
+    last_updated: number;
+  };
+};
+
+declare type UserEraActivityResponse = {
+  payload: {
+    from_ts: number;
+    to_ts: number;
+    last_updated: number;
+    user_id: string;
+    range: UserStatsAPIRange;
+    era_activity: Array<{
+      year: number;
+      count: number;
+    }>;
+  };
+};
+
+declare type UserArtistEvolutionActivityResponse = {
+  payload: {
+    user_id: string;
+    artist_evolution_activity: RawUserArtistEvolutionRow[];
+    range: UserStatsAPIRange;
+    from_ts: number;
+    to_ts: number;
+    last_updated: number;
+    offset_year?: number;
+  };
+};
+
+declare type RawUserArtistEvolutionRow = {
+  time_unit: string | number;
+  artist_mbid: string;
+  artist_name: string;
+  listen_count: number;
+};
+
+declare type GenreHourData = {
+  genre: string;
+  hour: number;
+  listen_count: number;
+};
+
+declare type UserGenreActivityResponse = {
+  payload: {
+    genre_activity: Array<GenreHourData>;
+    from_ts: number;
+    to_ts: number;
+    last_updated: number;
+    user_id: string;
+    range: UserStatsAPIRange;
+  };
+};
+
+declare type UserArtistMapArtist = {
+  artist_name: string;
+  artist_mbid: string;
+  listen_count: number;
+};
+
+declare type UserArtistMapResponse = {
+  payload: {
+    from_ts: number;
+    to_ts: number;
+    last_updated: number;
+    user_id: string;
+    range: UserStatsAPIRange;
+    artist_map: Array<{
+      country: string;
+      artist_count: number;
+      listen_count: number;
+      artists: Array<UserArtistMapArtist>;
+    }>;
+  };
+};
+
+declare type CountryFeature = ChoroplethBoundFeature & {
+  properties: {
+    name: string;
+  };
+};
+
+declare type UserArtistMapDatum = {
+  id: string;
+  value: number;
+  artists?: Array<UserArtistMapArtist>;
+};
+
+declare type UserArtistMapData = Array<UserArtistMapDatum>;
+
+declare type ListenFeedBack = 1 | 0 | -1;
+
+declare type RecommendationFeedBack = "love" | "like" | "hate" | "dislike";
+
+declare type FeedbackResponse = {
+  created: number;
+  recording_msid: string;
+  recording_mbid?: string | null;
+  score: ListenFeedBack;
+  user_id: string;
+};
+declare type TrackMetadata = {
+  artist_name: string;
+  track_name: string;
+  release_name?: string;
+  recording_mbid?: string;
+  recording_msid?: string;
+  release_mbid?: string;
+  additional_info?: AdditionalInfo;
+  mbid_mapping?: MBIDMapping;
+};
+
+declare type FeedbackResponseWithTrackMetadata = FeedbackResponse & {
+  track_metadata: TrackMetadata;
+};
+
+declare type RecommendationFeedbackResponse = {
+  recording_mbid: string;
+  rating: RecommendationFeedBack;
+};
+
+declare type RecordingFeedbackMap = {
+  [recording_id: string]: ListenFeedBack;
+};
+
+declare type ACRMSearchResult = {
+  artist_credit_id: number;
+  artist_credit_name: string;
+  recording_mbid: string;
+  recording_name: string;
+  release_mbid: string;
+  release_name: string;
+};
+
+type CoverArtGridOptions = {
+  dimension: number;
+  layout: number;
+};
+
+// XSPF/JSPF format: https://www.xspf.org/jspf/
+declare type JSPFObject = {
+  playlist: JSPFPlaylist;
+};
+
+declare type JSPFPlaylistMetadata = {
+  external_urls?: { [key: string]: any };
+  algorithm_metadata?: {
+    source_patch: string;
+  };
+  expires_at?: string; // ISO date string
+  cover_art?: CoverArtGridOptions;
+};
+
+declare type JSPFPlaylistExtension = {
+  collaborators?: string[];
+  public: boolean;
+  created_for?: string;
+  copied_from?: string; // Full ListenBrainz playlist URI
+  last_modified_at?: string; // ISO date string
+  additional_metadata?: JSPFPlaylistMetadata;
+};
+
+declare type JSPFTrackExtension = {
+  added_by: string;
+  added_at: string; // ISO date string
+  artist_identifiers?: string[]; // Full MusicBrainz artist URIs
+  release_identifier?: string; // Full MusicBrainz release URI
+  additional_metadata?: { [key: string]: any };
+};
+
+declare type JSPFPlaylist = {
+  title: string;
+  creator: string;
+  annotation?: string;
+  info?: string;
+  location?: string;
+  identifier: string;
+  image?: string;
+  date: string; // ISO date string
+  license?: string;
+  attribution?: Array<{ location: string } | { identifier: string }>;
+  link?: Array<{ [name: string]: string }>;
+  meta?: Array<{ [name: string]: string }>;
+  track: Array<JSPFTrack>;
+  extension?: {
+    [name: string]: any;
+    "https://musicbrainz.org/doc/jspf#playlist"?: JSPFPlaylistExtension;
+  };
+};
+
+declare type JSPFTrack = {
+  id?: string; // React-sortable library expects an id attribute, this is not part of JSPF specification
+  location?: string[];
+  identifier: string | string[];
+  title: string;
+  creator: string;
+  annotation?: string;
+  info?: string;
+  image?: string;
+  album?: string;
+  trackNum?: number;
+  duration?: number;
+  link?: Array<{ [name: string]: string }>;
+  meta?: Array<{ [name: string]: string }>;
+  extension?: {
+    [name: string]: any;
+    "https://musicbrainz.org/doc/jspf#track"?: JSPFTrackExtension;
+  };
+};
+
+declare type RecommendationFeedbackMap = {
+  [recordingMbid: string]: RecommendationFeedBack | null;
+};
+
+declare type PinnedRecording = {
+  blurb_content?: string | null;
+  created: number;
+  pinned_until: number;
+  row_id: number;
+  recording_mbid: string | null;
+  recording_msid?: string;
+  track_metadata: TrackMetadata;
+  user_name?: string | null;
+};
+
+/** For recommending a track from the front-end */
+declare type UserTrackRecommendationMetadata = {
+  recording_mbid?: string;
+  recording_msid?: string;
+};
+
+/** For recommending a track personally from the front-end */
+declare type UserTrackPersonalRecommendationMetadata = UserTrackRecommendationMetadata & {
+  blurb_content: string;
+  users: Array<string>;
+  track_metadata?: TrackMetadata;
+};
+
+declare type PinEventMetadata = Listen & {
+  blurb_content?: string;
+};
+
+/** ***********************************
+ ********  USER FEED TIMELINE  ********
+ ************************************* */
+
+type EventTypeT =
+  | "recording_recommendation"
+  | "recording_pin"
+  | "listen"
+  | "like"
+  | "follow"
+  | "stop_follow"
+  | "block_follow"
+  | "notification"
+  | "personal_recording_recommendation"
+  | "critiquebrainz_review"
+  | "thanks";
+
+type UserRelationshipEventMetadata = {
+  user_name_0: string;
+  user_name_1: string;
+  relationship_type: "follow";
+  created: number;
+};
+
+type ThanksMetadata = {
+  original_event_id: number;
+  original_event_type: EventTypeT;
+  blurb_content: string;
+  thanker_id: number;
+  thanker_username: string;
+  thankee_id: number;
+  thankee_username: string;
+};
+
+type NotificationEventMetadata = {
+  message: string;
+};
+
+type EventMetadata =
+  | Listen
+  | UserRelationshipEventMetadata
+  | PinEventMetadata
+  | NotificationEventMetadata
+  | UserTrackPersonalRecommendationMetadata
+  | CritiqueBrainzReview
+  | ThanksMetadata;
+
+type TimelineEvent<T extends EventMetadata> = {
+  event_type: EventTypeT;
+  id?: number;
+  user_name: string;
+  created: number;
+  metadata: T;
+  hidden: boolean;
+};
+
+type SimilarUser = {
+  name: string;
+  similarityScore: number;
+};
+
+type ReviewableEntityType = "recording" | "artist" | "release_group";
+
+type ReviewableEntity = {
+  type: ReviewableEntityType;
+  name?: string | null;
+  mbid: string;
+};
+
+type CritiqueBrainzUser = {
+  created: string;
+  display_name: string;
+  id: string;
+  karma: number;
+  musicbrainz_username: string;
+  user_ref: string;
+  user_type: string;
+};
+
+type CritiqueBrainzReview = {
+  entity_id: string;
+  entity_name: string;
+  entity_type: ReviewableEntityType;
+  review_mbid?: string;
+  text: string;
+  languageCode?: string;
+  rating?: number;
+  user_name?: string;
+  published_on?: string;
+};
+
+type CritiqueBrainzReviewAPI = {
+  created: string;
+  edits: number;
+  entity_id: string;
+  entity_type: ReviewableEntityType;
+  id: string; // id of the review
+  full_name: string; // license
+  info_url: string; // license
+  is_draft: boolean;
+  is_hidden: boolean;
+  language: string;
+  last_revision: {
+    id: number;
+    rating: number;
+    review_id: string;
+    text: string;
+    timestamp: string;
+  };
+  last_updated: string;
+  license_id: string;
+  popularity: number;
+  published_on: string;
+  source: string | null;
+  source_url: string | null;
+  text: string | null;
+  rating: number;
+  user: CritiqueBrainzUser;
+  votes_negative_count: number;
+  votes_positive_count: number;
+};
+
+type CoverArtArchiveEntry = {
+  types: string[]; // Array of types i.e ["Front", "Back"]
+  front: boolean;
+  back: boolean;
+  edit: number;
+  image: string; // "http://coverartarchive.org/release/76df3287-6cda-33eb-8e9a-044b5e15ffdd/829521842.jpg",
+  comment: "";
+  approved: true;
+  id: string;
+  thumbnails: {
+    250: string; // Full URL to 250px version "http://coverartarchive.org/release/76df3287-6cda-33eb-8e9a-044b5e15ffdd/829521842-250.jpg",
+    500: string;
+    1200: string;
+    small: string;
+    large: string;
+  };
+};
+
+type CoverArtArchiveResponse = {
+  images: CoverArtArchiveEntry[];
+  release: string; // Full MB URL i.e "http://musicbrainz.org/release/76df3287-6cda-33eb-8e9a-044b5e15ffdd"
+};
+
+type ColorReleaseItem = {
+  artist_name: string;
+  color: number[];
+  dist: number;
+  caa_id: number;
+  release_name: string;
+  release_mbid: string;
+  recordings?: BaseListenFormat[];
+};
+
+type ColorReleasesResponse = {
+  payload: {
+    releases: Array<ColorReleaseItem>;
+  };
+};
+
+type UnlinkedListens = {
+  artist_name: string;
+  listened_at: string;
+  recording_name: string;
+  release_name?: string | null;
+  recording_msid: string;
+};
+
+type FreshReleaseItem = {
+  artist_credit_name: string;
+  artist_mbids: Array<string>;
+  caa_id: number | null;
+  caa_release_mbid: string | null;
+  confidence?: number;
+  release_date: string;
+  release_group_mbid: string;
+  release_group_primary_type?: string;
+  release_group_secondary_type?: string;
+  release_mbid: string;
+  release_name: string;
+  release_tags: Array<string>;
+  listen_count: number;
+};
+
+type UserFreshReleasesResponse = {
+  payload: {
+    releases: Array<FreshReleaseItem>;
+    user_id: string;
+  };
+};
+
+declare type SearchUser = {
+  user_name: string;
+};
+
+declare type BrainzPlayerSettings = {
+  youtubeEnabled : boolean;
+  spotifyEnabled : boolean;
+  soundcloudEnabled : boolean;
+  appleMusicEnabled : boolean;
+  internetArchiveEnabled : boolean;
+  funkwhaleEnabled : boolean;
+  navidromeEnabled : boolean;
+  brainzplayerEnabled : boolean;
+  notificationsEnabled : boolean;
+  dataSourcesPriority : Array<
+    | "spotify"
+    | "youtube"
+    | "soundcloud"
+    | "appleMusic"
+    | "funkwhale"
+    | "navidrome"
+    | "internetArchive"
+  >;
+};
+
+declare type UserPreferences = {
+  saveData?: boolean;
+  brainzplayer?: BrainzPlayerSettings;
+};
+
+declare type FeedbackForUserForRecordingsRequestBody = {
+  recording_mbids: string[];
+  recording_msids?: string[];
+};
+
+declare type BrainzPlayerQueueItem = Listen & {
+  id: string;
+};
+
+declare type BrainzPlayerQueue = BrainzPlayerQueueItem[];
+
+type SearchInputImperativeHandle = {
+  focus(): void;
+  triggerSearch(newText: string): void;
+  reset(): void;
+};
+// from spotifyTypes
+declare type SpotifyUser = {
+  access_token?: string;
+  permission?: Array<SpotifyPermission>;
+};
+
+declare type SpotifyPermission =
+  | "user-read-currently-playing"
+  | "user-read-recently-played"
+  | "streaming"
+  | "user-read-birthdate"
+  | "user-read-email"
+  | "user-read-private"
+  | "playlist-modify-public"
+  | "playlist-modify-private";
+
+declare type SpotifyImage = {
+  height: number | null;
+  url: string;
+  width: number | null;
+};
+
+declare type SpotifyArtist = {
+  uri: string;
+  name: string;
+};
+
+declare type SpotifyTrack = {
+  album: {
+    uri: string;
+    name: string;
+    images: Array<SpotifyImage>;
+  };
+  artists: Array<SpotifyArtist>;
+  id: string | null;
+  is_playable: boolean;
+  media_type: "audio" | "video";
+  name: string;
+  type: "track" | "episode" | "ad";
+  uri: string;
+};
+
+declare type SpotifyPlayerTrackWindow = {
+  device_id: string;
+};
+
+declare type SpotifyPlayerSDKState = {
+  paused: boolean;
+  loading: boolean;
+  position: number;
+  duration: number;
+  track_window: {
+    current_track: SpotifyTrack | null;
+    previous_tracks: SpotifyTrack[];
+  };
+};
+
+declare type SpotifyAPIError = {
+  error: {
+    status: number;
+    message: string;
+  };
+};
+
+declare type SpotifyPlaylistTrackObject = {
+  added_at: string; // ISO 8601 datetime string	The date and time the track or episode was added.
+  // Note: that some very old playlists may return null in this field.
+  added_by: SpotifyUserObject; // The Spotify user who added the track or episode.
+  // Note: that some very old playlists may return null in this field.
+  is_local: boolean; //	Whether this track or episode is a local file or not.
+  track: SpotifyTrack; //	Information about the track or episode.
+};
+
+declare type SpotifyUserObject = {
+  display_name: string; //	The name displayed on the user’s profile. null if not available.
+  external_urls: Array<{ [key: string]: string }>; // external URL object	Known public external URLs for this user.
+  followers: { href: string | null; total: number }; // followers object	Information about the followers of this user.
+  href: string; //	A link to the Web API endpoint for this user.
+  id: string; //	The Spotify user ID for this user.
+  images: SpotifyImage[]; // of image objects	The user’s profile image.
+  type: string; //	The object type: “user”
+  uri: string; // The Spotify URI for this user.
+};
+
+declare type SpotifyPlaylistObject = {
+  collaborative: boolean; //	true if the owner allows other users to modify the playlist.
+  description: string | null; // The playlist description. Only returned for modified, verified playlists, otherwise null.
+  external_urls: Array<{ [key: string]: string }>; // external URL object Known external URLs for this playlist.
+  followers: { href: string | null; total: number }; // followers object Information about the followers of the playlist.
+  href: string; // A link to the Web API endpoint providing full details of the playlist.
+  id: string; // The Spotify ID for the playlist.
+  images: SpotifyImage[]; // array of image objects Images for the playlist. The array may be empty or contain up to three images. The images are returned by size in descending order. See Working with Playlists. Note: If returned, the source URL for the image ( url ) is temporary and will expire in less than a day.
+  name: string; // The name of the playlist.
+  owner: SpotifyUserObject; // public user object The user who owns the playlist
+  public: boolean | null; // The playlist’s public/private status: true the playlist is public, false the playlist is private, null the playlist status is not relevant. For more about public/private status, see Working with Playlists.
+  snapshot_id: string; // The version identifier for the current playlist. Can be supplied in other requests to target a specific playlist version: see Remove tracks from a playlist
+  tracks: SpotifyPlaylistTrackObject[]; // array of playlist track objects inside a paging object Information about the tracks of the playlist.
+  type: string; // The object type: “playlist”
+  uri: string; // The Spotify URI for the playlist.
+};
+
+declare type SpotifyPagingObject<T> = {
+  href: string; //	A link to the Web API endpoint returning the full result of the request.
+  items: T[]; //	The requested data.
+  limit: number; //	The maximum number of items in the response (as set in the query or by default).
+  next: string; //	URL to the next page of items. ( null if none)
+  offset: number; //	The offset of the items returned (as set in the query or by default).
+  previous: string; //	URL to the previous page of items. ( null if none)
+  total: number; //	The maximum number of
+};
+
+// the spotify-web-playback-sdk types are a bit messy
+// Adding an any here for now.
+// TODO: remove this any eventually
+declare type SpotifyPlayerType = any | Spotify.SpotifyPlayer;
+
+declare type SoundCloudTrack = {
+  id: number;
+  permalink_url: string;
+  artwork_url: string;
+  title: string;
+  uri: string;
+  duration: number;
+  user: {
+    id: string;
+    username: string;
+  };
+};
+// from appleMusicTypes
+declare type AppleMusicUser = {
+  developer_token?: string;
+  music_user_token?: string;
+};
+
+declare type AppleMusicPlayerType = MusicKit.MusicKitInstance;
+
+declare type AppleMusicPlaylistObject = {
+  id: string; // The Apple Music ID for the playlist.
+  type: string; // The object type: “playlist”
+  href: string; // A link to the Web API endpoint providing full details of the playlist.
+  attributes: AppleMusicPlaylistAtrributes;
+  relationships?: AppleMusicPlaylistRelationships;
+};
+
+declare type AppleMusicPlaylistAtrributes = {
+  lastModifiedDate: string;
+  canEdit: boolean;
+  name: string; // The name of the playlist.
+  description: AppleMusicPlaylistDescriptionObject; // The playlist description. Only returned for modified, verified playlists, otherwise null.
+  isPublic: boolean; //	true if the owner allows other users to modify the playlist.
+  artwork?: AppleMusicPlaylistArtwork;
+  hasCatalog: boolean;
+  playParams?: AppleMusicPlaylistPlayParams;
+};
+
+declare type AppleMusicPlaylistPlayParams = {
+  id: string;
+  kind: string;
+  isLibrary?: boolean;
+};
+
+declare type AppleMusicPlaylistDescriptionObject = {
+  short: string | null;
+  standard: string;
+};
+
+declare type AppleMusicRelationships = {
+  tracks: AppleMusicPlaylistTrackObject[];
+};
+
+declare type AppleMusicPlaylistTrackObject = {
+  href: string;
+  next: string | null;
+  data: AppleMusicTrack; //	Information about the track.
+};
+
+declare type AppleMusicTrack = {
+  id: string;
+  type: string;
+  href: string;
+  attributes: AppleMusicTrackAttributes;
+};
+
+declare type AppleMusicTrackAttributes = {
+  albumName: string;
+  artistName: string;
+  artistUrl: string;
+  artwork: AppleMusicTrackArtwork;
+  attribution?: string;
+  audioVariants?: Array<string>;
+  composerName?: string;
+  contentRating?: string;
+  discNumber?: number;
+  durationInMillis: number;
+  editorialNotes?: AppleMusicTrackEditorialNotes;
+  genreNames: Array<string>;
+  hasLyrics: boolean;
+  isAppleDigitalMaster: boolean;
+  isrc?: string;
+  name: string;
+  playParams: AppleMusicTrackPlayParameters;
+  previews?: Array<AppleMusicTrackPreview>;
+  releaseDate: string;
+  trackNumber: number;
+  url: string;
+  workName: string;
+};
+
+declare type AppleMusicTrackArtwork = {
+  width: number;
+  height: number;
+  url: string;
+};
+
+declare type AppleMusicTrackPlayParameters = {
+  id: string;
+  kind: string;
+};
+// from soundcloudTypes
+declare type SoundCloudUser = {
+  access_token?: string;
+};
+
+declare type SoundCloudTrackObject = {
+  id: string;
+  permalink_url: string;
+  artwork_url?: string;
+  title: string;
+  uri: string;
+  duration: number;
+  user: {
+    id: string;
+    username: string;
+    avatar_url?: string;
+  };
+};
+
+declare type SoundCloudPlaylistObject = {
+  id: string;
+  title: string;
+  description?: string;
+  tracks: SoundCloudTrackObject[];
+  created_at: string;
+  duration: number;
+  artwork_url?: string;
+  genre?: string;
+  user: {
+    id: number;
+    username: string;
+    avatar_url?: string;
+  };
+};
+
+declare type SoundcloudAPIError = {
+  code: integer;
+  message: string;
+  link: string;
+};
+// from funkwhaleTypes
+declare type FunkwhaleUser = {
+  access_token?: string;
+  refresh_token?: string;
+  instance_url: string;
+  user_id: string;
+  username: string;
+};
+
+declare type FunkwhaleTrack = {
+  id: number;
+  title: string;
+  // Funkwhale API version 2 uses artist_credit array
+  artist_credit?: Array<{
+    artist: {
+      id: number;
+      name: string;
+      mbid?: string;
+      fid?: string;
+    };
+    credit: string;
+    joinphrase: string;
+    index: number;
+  }>;
+  // Funkwhale API version 1 uses artist object
+  artist?: {
+    id: number;
+    name: string;
+    mbid?: string;
+    fid?: string;
+  };
+  album?: {
+    id: number;
+    title: string;
+    mbid?: string;
+    cover?: {
+      uuid?: string;
+      size?: number;
+      mimetype?: string;
+      creation_date?: string;
+      urls?: {
+        source?: string | null;
+        original?: string;
+        small_square_crop?: string;
+        medium_square_crop?: string;
+        large_square_crop?: string;
+      };
+    };
+  };
+  listen_url: string;
+  fid?: string;
+  duration: number;
+  position?: number;
+  mbid?: string;
+  is_playable?: boolean;
+  creation_date: string;
+  modification_date: string;
+};
+
+declare type FunkwhaleAlbum = {
+  id: number;
+  title: string;
+  artist: {
+    id: number;
+    name: string;
+    mbid?: string;
+  };
+  mbid?: string;
+  cover?: {
+    uuid?: string;
+    size?: number;
+    mimetype?: string;
+    creation_date?: string;
+    urls?: {
+      source?: string | null;
+      original?: string;
+      small_square_crop?: string;
+      medium_square_crop?: string;
+      large_square_crop?: string;
+    };
+  };
+  creation_date: string;
+  modification_date: string;
+  tracks_count: number;
+};
+
+declare type FunkwhaleArtist = {
+  id: number;
+  name: string;
+  mbid?: string;
+  creation_date: string;
+  modification_date: string;
+  albums_count: number;
+  tracks_count: number;
+};
+// from navidromeTypes
+declare type NavidromeUser = {
+  md5_auth_token?: string;
+  instance_url: string;
+  salt?: string;
+  username: string;
+};
+
+declare type NavidromeTrack = {
+  id: string;
+  title: string;
+  artist: string;
+  album: string;
+  albumId: string;
+  duration: number;
+};
+
+declare type NavidromeAlbum = {
+  id: string;
+  name: string;
+  artist: string;
+  artistId: string;
+  coverArt?: string;
+  songCount: number;
+  duration: number;
+  playCount: number;
+  created: string;
+  starred?: string;
+  year?: number;
+  genre?: string;
+};
+
+declare type NavidromeArtist = {
+  id: string;
+  name: string;
+  coverArt?: string;
+  albumCount: number;
+  starred?: string;
+};
+
+declare type NavidromePlaylist = {
+  id: string;
+  name: string;
+  comment?: string;
+  owner: string;
+  public: boolean;
+  songCount: number;
+  duration: number;
+  created: string;
+  changed: string;
+  coverArt?: string;
+  allowedUser?: string[];
+  entry?: NavidromeTrack[];
+};
+
+declare type NavidromeSearchResult = {
+  artist?: NavidromeArtist[];
+  album?: NavidromeAlbum[];
+  song?: NavidromeTrack[];
+};
+
+declare type NavidromeAuthParams = {
+  u: string; // username
+  t: string; // token (MD5 hash)
+  s: string; // salt
+  v: string; // version
+  c: string; // client
+  f: string; // format
+};
+
+declare type NavidromeResponse<T> = {
+  "subsonic-response": {
+    status: "ok" | "failed";
+    version: string;
+    type: string;
+    serverVersion: string;
+    openSubsonic: boolean;
+  } & T;
+};
+// from donation
+type DonationInfo = {
+	id: number;
+	donated_at: string;
+	donation: number;
+	currency: "usd" | "eur";
+	musicbrainz_id: string;
+	is_listenbrainz_user: boolean;
+	listenCount: number;
+	playlistCount: number;
+};
+
+type DonationInfoWithPinnedRecording = DonationInfo & {
+	pinnedRecording: PinnedRecording;
+};
+// from ./explore/music-neighborhood/types.d.ts
+type ArtistNodeInfo = {
+  artist_mbid: string;
+  name: string;
+  comment?: string;
+  type?: string;
+  gender?: string;
+  score?: number;
+  reference_mbid?: string;
+};
+
+type NodeType = {
+  id: string;
+  artist_mbid: string;
+  artist_name: string;
+  size: number;
+  color: string;
+  score: number;
+};
+
+type LinkType = {
+  source: string;
+  target: string;
+  distance: number;
+};
+
+type GraphDataType = {
+  nodes: Array<NodeType>;
+  links: Array<LinkType>;
+};
+
+type ArtistInfoType = {
+  area: string;
+  artist_mbid: string;
+  born: string | number;
+  gender?: string;
+  link: string;
+  name: string;
+  topAlbum: ReleaseGroupType | null;
+  topTracks: RecordingType[] | null;
+  type: string;
+  wiki: string;
+};
+
+type ReleaseColor = {
+  blue: number;
+  green: number;
+  red: number;
+};
+
+type RecordingType = {
+  artist_mbids: Array<string>;
+  artist_name: string;
+  artists: Array<MBIDMappingArtist>;
+  caa_id: number;
+  caa_release_mbid: string;
+  length: number;
+  recording_mbid: string;
+  recording_name: string;
+  release_color: ReleaseColor;
+  release_mbid: string;
+  release_name: string;
+  total_listen_count: number;
+  total_user_count: number;
+};
+
+type ReleaseGroupType = {
+  artist: {
+    artist_credit_id: number;
+    name: string;
+    artists: Array<MusicBrainzArtist>;
+  };
+  release: {
+    caa_id: number;
+    caa_release_mbid: string;
+    date: string;
+    name: string;
+    type: string;
+  };
+  release_color: ReleaseColor;
+  release_group: {
+    caa_id: number;
+    caa_release_mbid: string;
+    date: string;
+    name: string;
+    type: string;
+  };
+  release_group_mbid: string;
+  tag: {
+    artist: Array<ArtistTag>;
+    release_group: Array<ReleaseGroupTag>;
+  };
+  total_listen_count: number;
+  total_user_count: number;
+};
+// from ./metadata-viewer/types.d.ts
+/** Main entities */
+declare type MusicBrainzArtist = {
+  name: string;
+  artist_mbid: string;
+  join_phrase?: string;
+  area: string;
+  begin_year?: number;
+  end_year?: number;
+  rels: { [key: string]: string };
+  //   rels: Record<string, string>;
+  type: string;
+  tag?: {
+    artist: Array<ArtistTag>;
+  };
+  gender?: string;
+};
+
+declare type MusicBrainzArtistCredit = {
+  name: string;
+  joinphrase: string;
+  artist: {
+    name: string;
+    "sort-name": string;
+    id: string;
+    disambiguation: string;
+    type: string | null;
+    "type-id": string;
+  };
+};
+
+declare type MusicBrainzReleaseGroup = {
+  title: string;
+  id: string;
+  disambiguation: string;
+  "first-release-date": string;
+  "primary-type": string;
+  "primary-type-id": string;
+  "secondary-types": string[];
+  "secondary-type-ids": string[];
+};
+declare type MusicBrainzLabel = {
+  "catalog-number": string;
+  label?:{id:string;name:string};
+}
+
+declare type MusicBrainzTrack = {
+  number: string;
+  length: number;
+  position: number;
+  title: string;
+  id: string;
+  recording: Omit<MusicBrainzRecording, "artist-credit">;
+};
+declare type MusicBrainzMedia = {
+  title: string;
+  position: number;
+  tracks: Array<MusicBrainzTrack | (MusicBrainzTrack & WithArtistCredits)>;
+  format: string;
+  "format-id": string;
+  "track-offset": number;
+  "track-count": number;
+};
+declare type MusicBrainzRelease = {
+  title: string;
+  id: string;
+  packaging: string;
+  "packaging-id": string;
+  date: string;
+  status: string;
+  barcode: string | number;
+  "status-id": string;
+  disambiguation: string;
+  quality: string;
+  country: string;
+  "label-info"?: MusicBrainzLabel[];
+};
+// With ?inc=media
+declare type WithMedia = {
+  media: Array<MusicBrainzMedia>;
+};
+// With ?inc=artist-credits
+declare type WithArtistCredits = {
+  "artist-credit": Array<MusicBrainzArtistCredit>;
+};
+// With ?inc=release-groups
+declare type WithReleaseGroup = {
+  "release-group": MusicBrainzReleaseGroup;
+};
+// With ?inc=releases
+declare type WithReleases = {
+  releases: MusicBrainzRelease[];
+};
+
+declare type MusicBrainzRecording = {
+  title: string;
+  id: string;
+  "first-release-date": string;
+  length: number;
+  video: boolean;
+  disambiguation: string;
+  "artist-credit": Array<MusicBrainzArtistCredit>;
+};
+// With ?inc=releases
+declare type MusicBrainzRecordingWithReleases = MusicBrainzRecording & {
+  releases: Array<MusicBrainzRelease>;
+};
+// With ?inc=releases+release-groups
+declare type MusicBrainzRecordingWithReleasesAndRGs = MusicBrainzRecording & {
+  releases: Array<MusicBrainzRelease & WithReleaseGroup>;
+};
+
+declare type MusicBrainzRecordingRel = {
+  artist_mbid: string;
+  artist_name: string;
+  instrument?: string;
+  type: string;
+};
+
+declare type MusicBrainzUrlRel = {
+  type: string;
+  url: string;
+};
+
+declare type WikipediaExtract = {
+  url: string;
+  content: string; // HTML string
+  title: string;
+  canonical: string;
+  language: string;
+};
+
+/** Tags / Genres / Moods */
+declare type EntityTag = {
+  count: number;
+  genre_mbid?: string;
+  tag: string;
+};
+
+declare type RecordingTag = EntityTag;
+declare type ReleaseGroupTag = EntityTag;
+
+declare type ArtistTag = EntityTag & {
+  artist_mbid: string;
+};
+
+declare type ListenMetadata = {
+  artist?: {
+    name?: string;
+    artists?: Array<MusicBrainzArtist>;
+  };
+  recording?: {
+    name?: string;
+    rels?: Array<MusicBrainzRecordingRel>;
+    url_rels?: Array<MusicBrainzUrlRel>;
+    length?: number;
+  };
+  release?: {
+    name?: string;
+    caa_id?: number;
+    caa_release_mbid?: string;
+    mbid?: string;
+    year?: number;
+    album_artist_name?: string;
+    release_group_mbid?: string;
+  };
+  tag?: {
+    artist?: Array<ArtistTag>;
+    recording?: Array<RecordingTag>;
+    release_group?: Array<ReleaseGroupTag>;
+  };
+};
+
+declare type MetadataLookup = {
+  metadata: ListenMetadata;
+  artist_credit_name: string;
+  artist_mbids: string[];
+  recording_mbid: string;
+  recording_name: string;
+  release_mbid: string;
+  release_name: string;
+};
+declare type ReleaseGroupMetadataLookupResponse = {
+  [string]: ReleaseGroupMetadataLookup;
+};
+declare type ReleaseGroupMetadataLookup = {
+  artist: {
+    artist_credit_id: number;
+    artists: MusicBrainzArtist[];
+    name: string;
+  };
+  release: {
+    name: string;
+    rels: { [key: string]: string };
+  };
+  release_group: {
+    name: string;
+    date: string;
+    type: string;
+    rels: { [key: string]: string };
+  };
+  tag?: {
+    artist?: Array<ArtistTag>;
+    release_group?: Array<ReleaseGroupTag>;
+  };
+};
+// from ./search/types.d.ts
+type PlaylistTypeSearchResult = {
+  count: number;
+  offset: number;
+  playlist_count: number;
+  playlists: {
+    playlist: {
+      annotation?: string;
+      creator: string;
+      date: string;
+      identifier: string;
+      title: string;
+    };
+  }[];
+};
+
+type TrackTypeSearchResult = {
+  count: number;
+  offset: number;
+  recordings: {
+    id: string;
+    title: string;
+    length: number;
+    disambiguation: string;
+    "artist-credit": {
+      name: string;
+      joinphrase?: string;
+      artist: {
+        id: string;
+        name: string;
+      };
+    }[];
+    releases: {
+      id: string;
+      title: string;
+      "artist-credit": {
+        name: string;
+        joinphrase?: string;
+      }[];
+      "release-groups": {
+        id: string;
+        title: string;
+      }[];
+    }[];
+  }[];
+};
+
+type Alias = {
+  "sort-name": string;
+  "type-id": string;
+  name: string;
+  locale: string | null;
+  type: string;
+  primary: boolean | null;
+  "begin-date": number | null;
+  "end-date": number | null;
+};
+
+type ArtistTypeSearchResult = {
+  count: number;
+  offset: number;
+  artists: {
+    name: string;
+    id: string;
+    type?: string;
+    country?: string;
+    gender?: string;
+    "sort-name"?: string;
+    disambiguation?: string;
+    area?: {
+      name: string;
+    };
+    aliases?: Alias[];
+  }[];
+};
+
+type AlbumTypeSearchResult = {
+  count: number;
+  offset: number;
+  "release-groups": {
+    id: string;
+    title: string;
+    "primary-type"?: string;
+    "first-release-date"?: string;
+    "artist-credit": {
+      name: string;
+      joinphrase?: string;
+      artist: {
+        id: string;
+        name: string;
+      };
+    }[];
+    releases: {
+      id: string;
+      title: string;
+    }[];
+  }[];
+};
