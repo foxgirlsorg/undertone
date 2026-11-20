@@ -1,7 +1,7 @@
 "use client";
 
 /*
-  About the user, from their public MusicBrainz editor page (bio, languages, user type, subscribers).
+  About the user, from their public MusicBrainz editor page (bio, homepage, languages, user type, subscribers).
   Renders nothing when there is nothing useful to show, so no empty panel appears.
 */
 
@@ -12,6 +12,8 @@ import { Panel, cx } from "@/components/ui";
 import { MB_URL } from "@/lib/config";
 import { fmtInt } from "@/lib/format";
 import { useMBProfile, type MBProfile } from "@/lib/mb-profile";
+import { useAuth } from "@/lib/auth";
+import useSWR from "swr";
 
 const BIO_TAGS = ["p", "br", "a", "b", "i"];
 const BIO_CLAMP_LINES = 8;
@@ -37,15 +39,41 @@ function sanitizeBio(html: string): string {
   return DOMPurify.sanitize(html, { ALLOWED_TAGS: BIO_TAGS, ALLOWED_ATTR: ["href"] });
 }
 
-const hasAbout = (p: MBProfile) =>
-  !!p.bioHtml || !!p.languages?.length || !!p.userType?.length || p.subscribers != null;
+const hasAbout = (p: MBProfile, homepage: string | undefined) =>
+  !!p.bioHtml || !!homepage || !!p.languages?.length || !!p.userType?.length || p.subscribers != null;
+
+/**
+ * The homepage. musicbrainz.org shows new editors' homepages only to logged-in people, so with a
+ * password sign-in Undertone asks for it as you (src/app/api/lb-session/mb-homepage).
+ */
+function useHomepage(name: string, profile: MBProfile | null | undefined) {
+  const { account } = useAuth();
+  const hidden = useSWR(
+    profile?.homepageHidden && account ? ["mb-homepage", name] : null,
+    async () => {
+      const res = await fetch(`/api/lb-session/mb-homepage/${encodeURIComponent(name)}`, { cache: "no-store" });
+      return ((await res.json().catch(() => ({}))) as { homepage?: string | null }).homepage ?? null;
+    },
+    { revalidateOnFocus: false }
+  );
+  return profile?.homepage ?? hidden.data ?? undefined;
+}
+
+const hostOf = (url: string) => {
+  try {
+    return new URL(url).host.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+};
 
 export function AboutPanel({ name }: { name: string }) {
   const mb = useMBProfile(name);
+  const homepage = useHomepage(name, mb.data);
   if (mb.isLoading) return <AboutSkeleton />;
   const profile = mb.data;
-  if (!profile || !hasAbout(profile)) return null;
-  return <About name={name} profile={profile} />;
+  if (!profile || !hasAbout(profile, homepage)) return null;
+  return <About name={name} profile={profile} homepage={homepage} />;
 }
 
 function AboutSkeleton() {
@@ -60,7 +88,7 @@ function AboutSkeleton() {
   );
 }
 
-function About({ name, profile }: { name: string; profile: MBProfile }) {
+function About({ name, profile, homepage }: { name: string; profile: MBProfile; homepage?: string }) {
   const bio = React.useMemo(() => (profile.bioHtml ? sanitizeBio(profile.bioHtml) : ""), [profile.bioHtml]);
   const languages = profile.languages ?? [];
   const userTypes = profile.userType ?? [];
@@ -87,8 +115,23 @@ function About({ name, profile }: { name: string; profile: MBProfile }) {
           </div>
         ) : null}
 
-        {userTypes.length || profile.subscribers != null ? (
+        {homepage || userTypes.length || profile.subscribers != null ? (
           <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-[14px] leading-6">
+            {homepage ? (
+              <>
+                <dt className="text-ink-3">Website</dt>
+                <dd className="min-w-0">
+                  <a
+                    href={homepage}
+                    target="_blank"
+                    rel="me noopener noreferrer"
+                    className="break-all text-white transition-colors hover:text-data"
+                  >
+                    {hostOf(homepage)}
+                  </a>
+                </dd>
+              </>
+            ) : null}
             {userTypes.length ? (
               <>
                 <dt className="text-ink-3">User type</dt>

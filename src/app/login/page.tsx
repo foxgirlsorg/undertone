@@ -147,13 +147,12 @@ function PasswordForm({ onDone }: { onDone: () => void }) {
 
 /*
   What the server is doing while you wait. ListenBrainz gives no progress, so the steps advance on a
-  timer set from real sign-ins (MetaBrainz ~1 s, listenbrainz.org ~15 s, your settings ~5 s); the
+  timer set from real sign-ins (MetaBrainz ~1 s, then listenbrainz.org for the rest); the
   sweeping bar and the seconds counter show the page is alive even when a step runs long.
 */
 const STEPS = [
   { label: "Checking your password with MetaBrainz", until: 2 },
-  { label: "Signing you in on listenbrainz.org", until: 18 },
-  { label: "Reading your settings and email", until: Infinity },
+  { label: "Signing you in on listenbrainz.org", until: Infinity },
 ];
 
 function SignInProgress() {

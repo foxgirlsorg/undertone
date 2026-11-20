@@ -7,7 +7,6 @@
 
 import * as React from "react";
 import { usePathname } from "next/navigation";
-import useSWR from "swr";
 import { format } from "date-fns";
 import { Button, toast } from "@heroui/react";
 import { gravatarUrl, sharedAvatarUrl, useAuth } from "@/lib/auth";
@@ -34,26 +33,8 @@ export function ProfileShell({ children }: { children: React.ReactNode }) {
   const mbProfile = mb.data ?? undefined;
   // MusicBrainz no longer hosts pictures: your own Gravatar on your profile, or one its owner shared through Undertone.
   const avatarSrc = isMe && account?.gravatarHash ? gravatarUrl(account.gravatarHash, 128) : sharedAvatarUrl(name, 128);
-  // musicbrainz.org shows new editors' homepages only to logged-in people; with a password sign-in, ask as you.
-  const hiddenHomepage = useSWR(
-    mbProfile?.homepageHidden && account ? ["mb-homepage", name] : null,
-    async () => {
-      const res = await fetch(`/api/lb-session/mb-homepage/${encodeURIComponent(name)}`, { cache: "no-store" });
-      return ((await res.json().catch(() => ({}))) as { homepage?: string | null }).homepage ?? null;
-    },
-    { revalidateOnFocus: false }
-  );
-  const homepage = mbProfile?.homepage ?? hiddenHomepage.data ?? undefined;
   const location = mbProfile?.location;
   const memberSince = mbProfile?.memberSince;
-  const homeHost = (() => {
-    if (!homepage) return undefined;
-    try {
-      return new URL(homepage).host;
-    } catch {
-      return undefined;
-    }
-  })();
   const first = useLB(["user-listens", name, 0, 0], (api) => fetchListensPage(api, name));
   const oldest = first.data?.oldestListenTs ?? 0;
 
@@ -123,20 +104,10 @@ export function ProfileShell({ children }: { children: React.ReactNode }) {
                 Listening since {format(toDate(oldest), "d MMMM yyyy")}
               </p>
             ) : null}
-            {location || homeHost || memberSince ? (
+            {location || memberSince ? (
               <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13px] leading-5 text-ink-3">
                 {location ? <span className="min-w-0 break-words">{location}</span> : null}
-                {location && homeHost ? <span aria-hidden>·</span> : null}
-                {homeHost && homepage ? (
-                  <a
-                    href={homepage}
-                    rel="me noopener"
-                    className="min-w-0 break-all rounded-sm text-ink-2 transition-colors hover:text-data max-sm:-my-3 max-sm:py-3"
-                  >
-                    {homeHost}
-                  </a>
-                ) : null}
-                {(location || homeHost) && memberSince ? <span aria-hidden>·</span> : null}
+                {location && memberSince ? <span aria-hidden>·</span> : null}
                 {memberSince ? (
                   <span className="min-w-0 break-words">MusicBrainz member since {memberSinceText(memberSince)}</span>
                 ) : null}
